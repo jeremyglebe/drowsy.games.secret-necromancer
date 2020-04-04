@@ -10,11 +10,11 @@ class boot extends Phaser.Scene {
 
     fireball;
 
-    constructor(){
+    constructor() {
         super("boot")
     }
 
-    preload(){
+    preload() {
         this.load.image("Fireball_graphic", "../assets/images/cards/fireball_card.png");
         this.load.image("Lightning_graphic", "../assets/images/cards/lightning_card.png");
         this.load.image("Shield_graphic", "../assets/images/cards/shield_card.png");
@@ -23,12 +23,12 @@ class boot extends Phaser.Scene {
         this.load.image("Wizard_graphic", "../assets/images/cards/wizard_card.png");
     }
 
-    init(){}
+    init() { }
 
-    create(){
-        this.scene.start("cardtest");
+    create() {
+        this.scene.start("Connect");
     }
- }
+}
 
- // exports the class so it may be imported/required elsewhere
+// exports the class so it may be imported/required elsewhere
 module.exports = boot;

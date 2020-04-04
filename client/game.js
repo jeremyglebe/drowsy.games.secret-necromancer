@@ -1,7 +1,7 @@
 //imports
 const Phaser = require("phaser");
-const cardtest = require("./scenes/Cardtest");
-const boot = require("./scenes/Boot");
+const Boot = require("./scenes/Boot");
+const CardTest = require("./scenes/Cardtest");
 const Connect = require('./scenes/Connect');
 const Lobby = require('./scenes/Lobby');
 
@@ -29,9 +29,9 @@ const gameConfig = {
     backgroundColor: '#000000',
 
     scene: [
-        boot,
+        Boot,
         Connect,
-        cardtest,
+        CardTest,
         Lobby
     ]
 };

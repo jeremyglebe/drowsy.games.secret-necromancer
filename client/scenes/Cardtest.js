@@ -17,7 +17,7 @@ const Necromancer = require("../../server/game/roles/Necromancer");
  class CardTest extends Phaser.Scene {
 
     constructor(){
-        super("cardtest")
+        super("CardTest");
     }
 
     preload(){}

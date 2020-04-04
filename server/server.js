@@ -137,6 +137,7 @@ const onStart = function (socket) {
         // Create the Field object
         field = new Field(Object.keys(idMap));
     }
+    io.emit('start game', field);
 }
 
 /**
@@ -150,8 +151,8 @@ const onGreeting = function (socket) {
 
 const printConnections = function () {
     // Print the status of players connected
-    console.log("VIP: ", userMap[vipPlayer]);
     console.log("\n# of Players: ", numPlayers);
+    console.log("VIP: ", userMap[vipPlayer]);
     console.log(idList);
     console.log(idMap);
     console.log(userMap, '\n');

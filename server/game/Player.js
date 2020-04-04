@@ -49,12 +49,16 @@ class Player {
      */
     drawFrom(deck) {
         let card = deck.pop();
-        if (!card.evil)
-            this.hand.push(card);
-        else if (this.role == 'necromancer') {
-            this.dahand.push(card);
+        if (card) {
+            if (!card.evil)
+                this.hand.push(card);
+            else if (this.role == 'necromancer') {
+                this.dahand.push(card);
+            } else {
+                console.log("You can't have an evil card! You're a ", this.role, '!');
+            }
         } else {
-            console.log("You can't have an evil card! You're a ", this.role, '!');
+            console.log("Deck is empty :(");
         }
     }
 }

@@ -25,9 +25,13 @@ class Lobby extends Phaser.Scene {
         client.emit('greeting');
         // Add a name tag when a play joins
         client.on('update players', this.onUpdatePlayers.bind(this));
+        // When the server says to start, go to next scene. Pass in field.
+        client.on('start game', (field) => {
+            this.scene.start('CardTest', field);
+        });
     }
 
-    emitStartGame() {
+    emitStart() {
         client.emit("start");
     }
 
@@ -38,7 +42,7 @@ class Lobby extends Phaser.Scene {
         this.add.rectangle(640, 600, 320, 80, 0x88FF88, 0.5)
             .setOrigin(0.5).setInteractive()
             // When the box is clicked, ask the server to start the game
-            .on('pointerdown', this.emitStartGame, this);
+            .on('pointerdown', this.emitStart, this);
     }
 
     onUpdatePlayers(data) {
