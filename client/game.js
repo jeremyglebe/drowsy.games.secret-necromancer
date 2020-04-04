@@ -1,7 +1,6 @@
-console.log("Made it here.");
-
 //imports
 const Phaser = require("phaser");
+const cardtest = require("./scenes/cardtest");
 
 
 /** Start of the Phaser game object*/
@@ -25,7 +24,7 @@ const gameConfig = {
 
     backgroundColor: '#000000',
 
-    scene: []
+    scene: [cardtest]
 };
 
 //create the primary game object
