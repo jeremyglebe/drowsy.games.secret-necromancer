@@ -12,6 +12,8 @@ var userMap = {};
 var vipPlayer = '';
 // Number of players connected
 var numPlayers = 0;
+// Are we still "in the lobby", waiting for more players?
+var lobby = true;
 
 /**
  * Starts up the server and opens the listener
@@ -30,6 +32,40 @@ const initializeServer = function () {
  * @param socket 
  */
 const onConnection = function (socket) {
+    // Get the user's preferred username
+    let uname = socket.handshake.query.username;
+
+    // User rejection conditions
+    if (!lobby) {
+        // Reject the user if we've already left the lobby
+        socket.emit('rejection', 'Server not accepting players.');
+        // Log that a user has been rejected
+        console.log('User rejected:', socket.id,
+            ' | Reason: Server not accepting players.');
+        // Disconnect the user
+        socket.disconnect(true);
+        return;
+    }
+    else if (numPlayers >= 5) {
+        // Reject the user if there's already 5 players
+        socket.emit('rejection', 'Server is full.');
+        // Log that a user has been rejected
+        console.log('User rejected:', socket.id,
+            ' | Reason: Server is full.');
+        // Disconnect the user
+        socket.disconnect(true);
+        return;
+    } else if (uname in idMap) {
+        // Reject the user if their name is already taken
+        socket.emit('rejection', 'Username is already in use.');
+        // Log that a user has been rejected
+        console.log('User rejected:', socket.id,
+            ' | Reason: Username is already in use.');
+        // Disconnect the user
+        socket.disconnect(true);
+        return;
+    }
+
     // Log that a user has joined
     console.log('A user connected:', socket.id);
 
@@ -40,13 +76,14 @@ const onConnection = function (socket) {
         vipPlayer = socket.id;
     numPlayers++;
     // Add the player to username<->id maps
-    let uname = socket.handshake.query.username
     idMap[uname] = socket.id;
     userMap[socket.id] = uname;
 
     // Add a disconnect handler for the new user
     socket.on('disconnect', () => { onDisconnect(socket) });
     // Add a handler if the user sends greeting
+    socket.on('start', () => { onStart(socket) });
+    // Add a handler if the user wants to start the game
     socket.on('greeting', () => { onGreeting(socket) });
 }
 
@@ -71,6 +108,20 @@ const onDisconnect = function (socket) {
 }
 
 /**
+ * If the VIP player tells the server to start the game, it responds by
+ * creating a Field object and Players for each player.
+ * @param socket 
+ */
+const onStart = function (socket) {
+    if (socket.id == vipPlayer) {
+        // Just print the status of the players
+        printConnections();
+        // Exit the lobby phase
+        lobby = false;
+    }
+}
+
+/**
  * This is really just a test to make sure the client can emit to server.
  * @param socket 
  */
@@ -81,6 +132,7 @@ const onGreeting = function (socket) {
 
 const printConnections = function () {
     // Print the status of players connected
+    console.log("VIP: ", userMap[vipPlayer]);
     console.log("\n# of Players: ", numPlayers);
     console.log(idList);
     console.log(idMap);
