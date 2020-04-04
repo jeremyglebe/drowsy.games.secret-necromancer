@@ -18,6 +18,8 @@ const gameConfig = {
         height: 600
     },
 
+    pixelArt: true,
+
     dom: {
         createContainer: true
     },
