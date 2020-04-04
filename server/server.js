@@ -55,66 +55,17 @@ const initializeServer = function () {
     });
 }
 
-const emitDeclareVIP = function (socket) {
-    var confirmed = false;
-    var iterations = 0;
-    var interval = setInterval(() => {
-        if (iterations > 5) {
-            clearInterval(interval);
-            vipPlayer = '';
-            socket.emit('rejection', 'Player took too long to respond.');
-            socket.disconnect(true);
-        } else if (confirmed) {
-            clearInterval(interval);
-            vipPlayer = socket.id;
-        } else {
-            socket.emit('declareVIP');
-        }
-        iterations++;
-    }, 1000);
-    socket.on('acceptVIP', () => {
-        confirmed = true;
-    });
-}
-
 /**
  * Handles the initial connection of a new user.
  * @param socket 
  */
 const onConnection = function (socket) {
     // Get the user's preferred username
-    let uname = socket.handshake.query.username;
+    let username = socket.handshake.query.username;
 
-    // User rejection conditions
-    if (!lobby) {
-        // Reject the user if we've already left the lobby
-        socket.emit('rejection', 'Server not accepting players.');
-        // Log that a user has been rejected
-        console.log('User rejected:', socket.id,
-            ' | Reason: Server not accepting players.');
-        // Disconnect the user
-        socket.disconnect(true);
+    // Test for rejection of client
+    if (testForRejection(socket))
         return;
-    }
-    else if (numPlayers >= 5) {
-        // Reject the user if there's already 5 players
-        socket.emit('rejection', 'Server is full.');
-        // Log that a user has been rejected
-        console.log('User rejected:', socket.id,
-            ' | Reason: Server is full.');
-        // Disconnect the user
-        socket.disconnect(true);
-        return;
-    } else if (uname in idMap) {
-        // Reject the user if their name is already taken
-        socket.emit('rejection', 'Username is already in use.');
-        // Log that a user has been rejected
-        console.log('User rejected:', socket.id,
-            ' | Reason: Username is already in use.');
-        // Disconnect the user
-        socket.disconnect(true);
-        return;
-    }
 
     // Log that a user has joined
     console.log('A user connected:', socket.id);
@@ -123,12 +74,18 @@ const onConnection = function (socket) {
     idList.push(socket.id);
     // Check if the player is vip
     if (numPlayers < 1) {
-        emitDeclareVIP(socket);
+        vipPlayer = socket.id;
     }
     numPlayers++;
     // Add the player to username<->id maps
-    idMap[uname] = socket.id;
-    userMap[socket.id] = uname;
+    idMap[username] = socket.id;
+    userMap[socket.id] = username;
+
+    // Tell the user their connection was accepted
+    if (socket.id == vipPlayer)
+        socket.emit('accept connection', 'vip');
+    else
+        socket.emit('accept connection', 'player')
 
     // Add a disconnect handler for the new user
     socket.on('disconnect', () => { onDisconnect(socket) });
@@ -153,8 +110,8 @@ const onDisconnect = function (socket) {
     }
     numPlayers--;
     // Remove the player from username<->id maps
-    let uname = userMap[socket.id];
-    delete idMap[uname];
+    let username = userMap[socket.id];
+    delete idMap[username];
     delete userMap[socket.id];
 }
 
@@ -190,4 +147,42 @@ const printConnections = function () {
     console.log(idList);
     console.log(idMap);
     console.log(userMap, '\n');
+}
+
+const testForRejection = function (socket) {
+    // Get the user's preferred username
+    let username = socket.handshake.query.username;
+
+    // User rejection conditions
+    if (!lobby) {
+        // Reject the user if we've already left the lobby
+        socket.emit('reject connection', 'Server not accepting players.');
+        // Log that a user has been rejected
+        console.log('User rejected:', socket.id,
+            ' | Reason: Server not accepting players.');
+        // Disconnect the user
+        socket.disconnect(true);
+        return true;
+    }
+    else if (numPlayers >= 5) {
+        // Reject the user if there's already 5 players
+        socket.emit('reject connection', 'Server is full.');
+        // Log that a user has been rejected
+        console.log('User rejected:', socket.id,
+            ' | Reason: Server is full.');
+        // Disconnect the user
+        socket.disconnect(true);
+        return true;
+    } else if (username in idMap) {
+        // Reject the user if their name is already taken
+        socket.emit('reject connection', 'Username is already in use.');
+        // Log that a user has been rejected
+        console.log('User rejected:', socket.id,
+            ' | Reason: Username is already in use.');
+        // Disconnect the user
+        socket.disconnect(true);
+        return true;
+    }
+
+    return false;
 }

@@ -88,8 +88,14 @@ class Connect extends Phaser.Scene {
 
     joinButtonClicked() {
         client.connectTo(this.username.text, this.ipaddress.text, parseInt(this.port.text, 10));
-        client.emit('greeting');
-        this.scene.start('Lobby');
+        client.on('accept connection', (playerType) => {
+            this.scene.start('Lobby', {
+                vip: playerType == 'vip'
+            });
+        });
+        client.on('reject connection', (message) => {
+            alert("Server rejected connection: " + message);
+        });
     }
 
 }

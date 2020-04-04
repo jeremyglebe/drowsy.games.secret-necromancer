@@ -5,18 +5,25 @@ class Lobby extends Phaser.Scene {
 
     constructor() {
         super("Lobby");
+        // Is the user the VIP user
+        this.vip = false;
+    }
+
+    init(data) {
+        this.vip = data.vip ? true : false;
     }
 
     create() {
-        // Respond to being declared the VIP
-        client.on("declareVIP", this.onDeclareVIP.bind(this));
+        if (this.vip)
+            this.createStartButton();
+        client.emit('greeting');
     }
 
     emitStartGame() {
         client.emit("start");
     }
 
-    onDeclareVIP() {
+    createStartButton() {
         // Create Start button
         this.add.text(640, 600, "Start The Game")
             .setOrigin(0.5).setFontSize(36);
@@ -24,8 +31,6 @@ class Lobby extends Phaser.Scene {
             .setOrigin(0.5).setInteractive()
             // When the box is clicked, ask the server to start the game
             .on('pointerdown', this.emitStartGame, this);
-        // Accept the VIP position and verify the signal was received
-        client.emit('acceptVIP');
     }
 
 }
