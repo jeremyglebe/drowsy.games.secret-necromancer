@@ -28,11 +28,14 @@ class CardSprite {
      * at the same time. This is not used in enlarge. default 0.
      */
     depth = 0;
+    /** Keeps track if any card in the game is currently enlarged */
+    static anyCardIsEnlarged = false;
 
     /** used to create an instance of the card */
-    constructor(x, y, card, scene){
+    constructor(x, y, card, depth, scene){
         this.card = card;
         this.scene = scene;
+        this.depth = depth;
         this.constructgraphic(x, y);
     }
 
@@ -74,6 +77,11 @@ class CardSprite {
             color: "dark black"
         });
         this.descripText.setOrigin(0,0);
+
+        //set everythings depth
+        this.graphic.depth = this.depth;
+        this.nameText.depth = this.depth;
+        this.descripText.depth = this.depth;
     }
 
     /** Used to Store the current coordinates of the card graphic */
@@ -117,11 +125,13 @@ class CardSprite {
     /** Used to decide weather to shrink or enlarge based on the bool large, when the card is right clicked gameobject */
     rightClick(pointer){
         if (pointer.rightButtonDown()){
-            if(this.large == false){
+            if(this.large == false && CardSprite.anyCardIsEnlarged == false){
                 this.large = true;
+                CardSprite.anyCardIsEnlarged = true;
                 this.enlarge();
-            } else {
+            } else if (this.large) {
                 this.large = false;
+                CardSprite.anyCardIsEnlarged = false;
                 this.shrink();
             }
         }

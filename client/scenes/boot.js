@@ -11,7 +11,7 @@ class boot extends Phaser.Scene {
     fireball;
 
     constructor(){
-        super("boot")
+        super("Boot")
     }
 
     preload(){
@@ -26,7 +26,7 @@ class boot extends Phaser.Scene {
     init(){}
 
     create(){
-        this.scene.start("cardtest");
+        this.scene.start("Maingame");
     }
  }
 
