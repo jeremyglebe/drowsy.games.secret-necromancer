@@ -1,14 +1,6 @@
 const Player = require('./Player');
 
 class Field {
-    /** @type {array} Turn order queue */
-    turnQueue;
-    /** Map of usernames to Player objects */
-    players;
-    /** List of cards in the deck */
-    deck;
-    /** List of cards in the dark arts deck */
-    dadeck;
 
     /**
      * Constructs a field object, creates Players out of the usernames given,
@@ -17,7 +9,16 @@ class Field {
      * class instantiated at the start
      */
     constructor(usernames) {
-        // Shuffle the users to pick a random necromancer
+        /** Turn order queue */
+        this.turnQueue = [];
+        /** Map of usernames to Player objects */
+        this.players = [];
+        /** List of cards in the deck */
+        this.deck = [];
+        /** List of cards in the dark arts deck */
+        this.dadeck = [];
+
+        // Shuffle the users to pick random roles
         shuffle(usernames);
         // Create a grandmaster (if there's at least 4 players)
         if (usernames.length >= 4) {

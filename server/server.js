@@ -27,7 +27,7 @@ const initializeServer = function () {
     // Add a listener for new user connections
     io.on('connection', onConnection);
     // Start the server's listener
-    http.listen(3000, function () {
+    http.listen(3000, "192.168.0.5", function () {
         console.log('listening on *:3000');
     });
 }
