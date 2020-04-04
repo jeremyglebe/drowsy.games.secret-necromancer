@@ -62,6 +62,14 @@ class Connect extends Phaser.Scene {
         this.createEditorButton(this.usernameButton, this.usernameEditor, 640, 140);
         this.createEditorButton(this.ipaddressButton, this.ipaddressEditor, 640, 300);
         this.createEditorButton(this.portButton, this.portEditor, 640, 460);
+
+        // Create Join button
+        this.add.text(640, 600, "Join Server")
+            .setOrigin(0.5).setFontSize(36);
+        this.add.rectangle(640, 600, 240, 50, 0x88FF88, 0.5)
+            .setOrigin(0.5).setInteractive()
+            // When the box is clicked, open the editor
+            .on('pointerdown', this.onJoinButton, this);
     }
 
     createEditorButton(rectangle, editor, x, y) {
@@ -76,6 +84,11 @@ class Connect extends Phaser.Scene {
                     }
                 });
             }, this);
+    }
+
+    onJoinButton() {
+        client.connectTo(this.username.text, this.ipaddress.text, parseInt(this.port.text, 10));
+        this.scene.start('cardtest');
     }
 
 }

@@ -29,9 +29,9 @@ const gameConfig = {
     backgroundColor: '#000000',
 
     scene: [
-        //cardtest,
         boot,
-        Connect
+        Connect,
+        cardtest
     ]
 };
 
@@ -39,4 +39,4 @@ const gameConfig = {
 const game = new Phaser.Game(gameConfig);
 
 // Starts the first scene, for now is a test
-game.scene.start("boot");
+// game.scene.start("boot");
