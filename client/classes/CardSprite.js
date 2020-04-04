@@ -1,3 +1,6 @@
+//imports
+const Phaser = require("phaser");
+
 /** 
  * Used to store the client side version of the card, hold all the same
  * data as the server-side version of the card but tacks on the added Phaser
