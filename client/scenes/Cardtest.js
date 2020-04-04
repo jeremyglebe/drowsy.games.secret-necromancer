@@ -1,4 +1,5 @@
 //imports
+const Phaser = require("phaser");
 const CardSprite = require("../classes/CardSprite");
 
 /** 

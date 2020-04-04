@@ -1,7 +1,7 @@
 //imports
 const Phaser = require("phaser");
-const cardtest = require("./scenes/cardtest");
-const boot = require("./scenes/boot");
+const cardtest = require("./scenes/Cardtest");
+const boot = require("./scenes/Boot");
 
 
 /** Start of the Phaser game object*/
@@ -15,8 +15,8 @@ const gameConfig = {
     scale: {
         parent: 'game',
         mode: Phaser.Scale.FIT,
-        width: 800,
-        height: 600
+        width: 1280,
+        height: 720
     },
 
     pixelArt: true,
