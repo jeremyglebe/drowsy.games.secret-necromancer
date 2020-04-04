@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/jeremyglebe/game_jam_cardgame#readme",
   "dependencies": {
+    "express": "^4.17.1",
     "phaser": "^3.22.0",
     "socketio": "^1.0.0"
   },
