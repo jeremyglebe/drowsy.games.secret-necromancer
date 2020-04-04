@@ -6,22 +6,22 @@ const CardSprite = require("../classes/CardSprite");
  * just waiting on access to phaser
  */
 
- class CardTest extends Phaser.Scene {
+class CardTest extends Phaser.Scene {
 
     fireball;
 
-    constructor(){
+    constructor() {
         super("cardtest")
     }
 
-    preload(){}
+    preload() { }
 
-    init(){}
+    init() { }
 
-    create(){
+    create() {
         let test = new CardSprite("", this);
     }
- }
+}
 
- // exports the class so it may be imported/required elsewhere
+// exports the class so it may be imported/required elsewhere
 module.exports = CardTest;
