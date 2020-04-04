@@ -17,19 +17,11 @@ var reader = readline.createInterface({
     output: process.stdout
 });
 reader.questionAsync('Enter the host address: ').then((inputHost) => {
-    // Questions re-print your answer, for some reason, isn't really necessary
-    // So we'll remove that by going up, printing a bunch of blanks, then
-    // returning to the start of the line
-    readline.moveCursor(process.stdout, 0, -1);
-    process.stdout.write('                                                \r');
     reader.questionAsync('Enter the server\'s port: ').then((inputPort) => {
-        // Remove unnecessary echo
-        readline.moveCursor(process.stdout, 0, -1);
-        process.stdout.write('                                                \r');
         // Assign the entered host and port if they aren't just blank
-        if (host != '')
+        if (inputHost.trim() != '')
             host = inputHost;
-        if (port != '')
+        if (inputPort.trim() != '')
             port = inputPort;
         // Start the server
         initializeServer();

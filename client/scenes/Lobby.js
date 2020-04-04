@@ -24,6 +24,8 @@ class Lobby extends Phaser.Scene {
             .setOrigin(0.5).setInteractive()
             // When the box is clicked, ask the server to start the game
             .on('pointerdown', this.emitStartGame, this);
+        // Accept the VIP position and verify the signal was received
+        client.emit('acceptVIP');
     }
 
 }
