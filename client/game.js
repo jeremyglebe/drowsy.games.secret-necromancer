@@ -2,7 +2,7 @@
 const Phaser = require("phaser");
 const cardtest = require("./scenes/Cardtest");
 const boot = require("./scenes/Boot");
-
+const Connect = require('./scenes/Connect');
 
 /** Start of the Phaser game object*/
 
@@ -27,11 +27,15 @@ const gameConfig = {
 
     backgroundColor: '#000000',
 
-    scene: [cardtest,boot]
+    scene: [
+        boot,
+        Connect,
+        cardtest
+    ]
 };
 
 //create the primary game object
 const game = new Phaser.Game(gameConfig);
 
 // Starts the first scene, for now is a test
-game.scene.start("boot");
+// game.scene.start("boot");
