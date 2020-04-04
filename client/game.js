@@ -1,9 +1,8 @@
 //imports
 const Phaser = require("phaser");
-const cardtest = require("./scenes/cardtest");
-const boot = require("./scenes/boot");
+const cardtest = require("./scenes/Cardtest");
+const boot = require("./scenes/Boot");
 const Connect = require('./scenes/Connect');
-
 
 /** Start of the Phaser game object*/
 
