@@ -12,7 +12,7 @@ class CardSprite {
     /** Stores the Card passed to it from the server */
     card;
     /** Stores the group of sprites used to visually represent the card class on the client-side */
-    graghic;
+    graphic;
     /** Stores the text for the name of the card */
     nameText;
     /** Stores the text for the descrition of the card */
@@ -23,63 +23,69 @@ class CardSprite {
     large = false;
     /** Stores the original x and y of the card from when it was changed last */
     coords = {x: 0, y: 0}
+    /** 
+     * stores the internal depth seperate from the sprite allows for changing of all graphic elements
+     * at the same time. This is not used in enlarge.
+     */
+    depth;
 
     /** used to create an instance of the card */
     constructor(x, y, card, scene){
         this.card = card;
         this.scene = scene;
-        this.constructGraghic(x, y);
+        this.constructgraphic(x, y);
     }
 
     /** used to link the stored Phaser elements to the current scene */
     link(scene){
-        this.scene.add.existing(this.graghic);
+        this.scene.add.existing(this.graphic);
         this.scene.add.existing(this.nameText);
         this.scene.add.existing(this.descripText);
     }
 
     /** 
-     * Used to construct the graghic object or phaser group object upon getting the internal this.card
+     * Used to construct the graphic object or phaser group object upon getting the internal this.card
      * Should only ever be called once upon the construction of this card 
      */
-    constructGraghic(x,y){
-        //create the main graghic
-        this.graghic = this.scene.add.sprite(x,y,this.card.name + "_graghic");
-        this.graghic.setOrigin(.5,.5)
-        this.graghic.setScale(1.5)
-        this.graghic.setInteractive();
-        this.scene.input.setDraggable(this.graghic);
+    constructgraphic(x,y){
+        //create the main graphic
+        this.graphic = this.scene.add.sprite(x,y,this.card.name + "_graphic");
+        this.graphic.setOrigin(.5,.5)
+        this.graphic.setScale(1.5)
+        this.graphic.setInteractive();
+        this.scene.input.setDraggable(this.graphic);
         //let listerners for certain emitted events
-        this.scene.input.on('pointerdown', this.rightClick, this)
+        // this.scene.input.on('pointerdown', this.rightClick, this)
+        this.graphic.on('pointerdown', this.rightClick, this);
         this.scene.input.on("dragstart", this.storePos, this)
         this.scene.input.on('drag', this.whenDragged, this);
         this.scene.input.on("dragend", this.stoppedDragging, this)
 
-        //create the name text graghic
-        this.nameText = this.scene.add.text(this.graghic.x - 28, this.graghic.y - 59, this.card.name,{
+        //create the name text graphic
+        this.nameText = this.scene.add.text(this.graphic.x - 28, this.graphic.y - 59, this.card.name,{
             font: "12px consolas",
             color: "dark black"
         });
         this.nameText.setOrigin(0,0);
 
-        //create the name text graghic
-        this.descripText = this.scene.add.text(this.graghic.x - 27, this.graghic.y + 28, this.card.description,{
+        //create the name text graphic
+        this.descripText = this.scene.add.text(this.graphic.x - 27, this.graphic.y + 28, this.card.description,{
             font: "5px consolas",
             color: "dark black"
         });
         this.descripText.setOrigin(0,0);
     }
 
-    /** Used to Store the current coordinates of the card graghic */
+    /** Used to Store the current coordinates of the card graphic */
     storePos(){
-        this.coords.x = this.graghic.x;
-        this.coords.y = this.graghic.y;
+        this.coords.x = this.graphic.x;
+        this.coords.y = this.graphic.y;
     }
 
-    /** Used to restore the graghic to the location last stored in coords */
+    /** Used to restore the graphic to the location last stored in coords */
     restorePos(){
-        this.graghic.setX(this.coords.x);
-        this.graghic.setY(this.coords.y);
+        this.graphic.setX(this.coords.x);
+        this.graphic.setY(this.coords.y);
     }
 
     /** What to do when the object is being dragged */
@@ -102,14 +108,14 @@ class CardSprite {
 
     /** Used to move the text when being dragged */
     moveText = function(){
-        this.nameText.setX(this.graghic.x - 28);
-        this.nameText.setY(this.graghic.y - 59);
-        this.descripText.setX(this.graghic.x - 27);
-        this.descripText.setY(this.graghic.y + 28);
+        this.nameText.setX(this.graphic.x - 28);
+        this.nameText.setY(this.graphic.y - 59);
+        this.descripText.setX(this.graphic.x - 27);
+        this.descripText.setY(this.graphic.y + 28);
     }
 
-    /** Used to decide weather to shrink or enlarge based on the bool large, when the card is right clicked gameobject*/
-    rightClick(pointer, gameObject){
+    /** Used to decide weather to shrink or enlarge based on the bool large, when the card is right clicked gameobject */
+    rightClick(pointer){
         if (pointer.rightButtonDown()){
             if(this.large == false){
                 this.large = true;
@@ -119,7 +125,6 @@ class CardSprite {
                 this.shrink();
             }
         }
-        console.log(gameObject, this.graghic);
     }
 
     /** used to center and enlarge the card so effects may be read */
@@ -128,17 +133,22 @@ class CardSprite {
         this.storePos();
 
         // move everything to the center
-        this.graghic.setX(640);
-        this.graghic.setY(360);
+        this.graphic.setX(640);
+        this.graphic.setY(360);
         this.nameText.setX(480);
         this.nameText.setY(50);
         this.descripText.setX(480);
         this.descripText.setY(500);
 
         //enlarge everything
-        this.graghic.setScale(8);
+        this.graphic.setScale(8);
         this.nameText.setFontSize(60);
         this.descripText.setFontSize(30);
+
+        //make sure the card apears on top of all other game objects
+        this.graphic.depth = 99;
+        this.nameText.depth = 99;
+        this.descripText.depth = 99;
     }
 
     /** Used to return the card back to normal after enlarge has been used */
@@ -148,9 +158,15 @@ class CardSprite {
         this.moveText();
 
         //shrink everything down
-        this.graghic.setScale(1.5);
+        this.graphic.setScale(1.5);
         this.nameText.setFontSize(12);
         this.descripText.setFontSize(5);
+
+        //make sure to return the depth to it original number
+        this.graphic.depth = this.depth;
+        this.nameText.depth = this.depth;
+        this.descripText.depth = this.depth;
+
     }
 
     /** calls to the global socket to emit to the server to active this card */
