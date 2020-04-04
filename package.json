@@ -17,10 +17,17 @@
     "sorcery",
     "secret"
   ],
-  "author": "Jeremy Glebe, Gracie Glebe, Zach Kingcade",
+  "author": "Jeremy Glebe, Gracie Glebe, Zachary Kingcade",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/jeremyglebe/game_jam_cardgame/issues"
   },
-  "homepage": "https://github.com/jeremyglebe/game_jam_cardgame#readme"
+  "homepage": "https://github.com/jeremyglebe/game_jam_cardgame#readme",
+  "dependencies": {
+    "phaser": "^3.22.0",
+    "socketio": "^1.0.0"
+  },
+  "devDependencies": {
+    "browser-sync": "^2.26.7"
+  }
 }
