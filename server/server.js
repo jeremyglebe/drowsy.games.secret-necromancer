@@ -5,6 +5,11 @@ const io = require('socket.io')(http);
 // Game object classes
 const Field = require('./game/Field');
 
+// Host address
+var host;
+// Host port
+var port;
+
 // List of user ids
 var idList = [];
 // Map of usernames to socket ids
@@ -27,8 +32,30 @@ const initializeServer = function () {
     // Add a listener for new user connections
     io.on('connection', onConnection);
     // Start the server's listener
-    http.listen(3000, "192.168.0.5", function () {
-        console.log('listening on *:3000');
+    http.listen(port, host, function () {
+        console.log('listening on ' + host + ':' + port);
+    });
+}
+
+const emitDeclareVIP = function (socket) {
+    var confirmed = false;
+    var iterations = 0;
+    var interval = setInterval(() => {
+        if (iterations > 5) {
+            clearInterval(interval);
+            vipPlayer = '';
+            socket.emit('rejection', 'Player took too long to respond.');
+            socket.disconnect(true);
+        } else if (confirmed) {
+            clearInterval(interval);
+            vipPlayer = socket.id;
+        } else {
+            socket.emit('declareVIP');
+        }
+        iterations++;
+    }, 1000);
+    socket.on('acceptVIP', () => {
+        confirmed = true;
     });
 }
 
@@ -78,8 +105,7 @@ const onConnection = function (socket) {
     idList.push(socket.id);
     // Check if the player is vip
     if (numPlayers < 1) {
-        vipPlayer = socket.id;
-        socket.emit('declareVIP');
+        emitDeclareVIP(socket);
     }
     numPlayers++;
     // Add the player to username<->id maps
