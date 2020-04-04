@@ -17,6 +17,8 @@ var vipPlayer = '';
 var numPlayers = 0;
 // Are we still "in the lobby", waiting for more players?
 var lobby = true;
+// Game field object
+var field = null;
 
 /**
  * Starts up the server and opens the listener
@@ -122,6 +124,7 @@ const onStart = function (socket) {
         // Exit the lobby phase
         lobby = false;
         // Create the Field object
+        field = new Field(Object.keys(idMap));
     }
 }
 
