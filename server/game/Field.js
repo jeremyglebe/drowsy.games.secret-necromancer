@@ -35,6 +35,31 @@ class Field {
     }
 
     /**
+     * Generates and returns a client-safe version of the field object with
+     * hidden information (such as the roles of the players) removed from the
+     * object.
+     */
+    getCliField() {
+        // Create the client's field object
+        let cliField = {
+            players: []
+        }
+        for (let ply of this.players) {
+            // Create an empty object to copy player data into
+            let cliPly = {};
+            // Copy every key except role into cliPly
+            for (let key in ply) {
+                if (key != 'role' && key != 'hand' && key != 'dahand') {
+                    cliPly[key] = ply[key];
+                }
+            }
+            // Add cliPly to new fields list of players
+            cliField.players.push(cliPly);
+        }
+        return cliField;
+    }
+
+    /**
      * Moves the item at the front of the turnQueue to the back.
      */
     nextTurn() {

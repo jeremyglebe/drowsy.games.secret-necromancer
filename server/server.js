@@ -87,6 +87,14 @@ const onConnection = function (socket) {
     else
         socket.emit('accept connection', 'player')
 
+    // Update the player list for all clients
+    setTimeout(() => {
+        io.emit('update players', {
+            usernames: Object.keys(idMap),
+            vip: userMap[vipPlayer]
+        });
+    }, 25);
+
     // Add a disconnect handler for the new user
     socket.on('disconnect', () => { onDisconnect(socket) });
     // Add a handler if the user sends greeting
