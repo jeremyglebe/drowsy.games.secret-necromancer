@@ -25,9 +25,9 @@ class CardSprite {
     coords = {x: 0, y: 0}
     /** 
      * stores the internal depth seperate from the sprite allows for changing of all graphic elements
-     * at the same time. This is not used in enlarge.
+     * at the same time. This is not used in enlarge. default 0.
      */
-    depth;
+    depth = 0;
 
     /** used to create an instance of the card */
     constructor(x, y, card, scene){
@@ -166,7 +166,6 @@ class CardSprite {
         this.graphic.depth = this.depth;
         this.nameText.depth = this.depth;
         this.descripText.depth = this.depth;
-
     }
 
     /** calls to the global socket to emit to the server to active this card */
