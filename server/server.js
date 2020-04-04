@@ -1,14 +1,40 @@
 const app = require('express')();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
+const readline = require('readline-promise').default;
 
 // Game object classes
 const Field = require('./game/Field');
 
 // Host address
-var host;
+var host = 'localhost';
 // Host port
-var port;
+var port = 3000;
+
+// Create a reader object using readline
+var reader = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+reader.questionAsync('Enter the host address: ').then((inputHost) => {
+    // Questions re-print your answer, for some reason, isn't really necessary
+    // So we'll remove that by going up, printing a bunch of blanks, then
+    // returning to the start of the line
+    readline.moveCursor(process.stdout, 0, -1);
+    process.stdout.write('                                                \r');
+    reader.questionAsync('Enter the server\'s port: ').then((inputPort) => {
+        // Remove unnecessary echo
+        readline.moveCursor(process.stdout, 0, -1);
+        process.stdout.write('                                                \r');
+        // Assign the entered host and port if they aren't just blank
+        if (host != '')
+            host = inputHost;
+        if (port != '')
+            port = inputPort;
+        // Start the server
+        initializeServer();
+    });
+});
 
 // List of user ids
 var idList = [];
@@ -173,6 +199,3 @@ const printConnections = function () {
     console.log(idMap);
     console.log(userMap, '\n');
 }
-
-// Start the server
-initializeServer();
