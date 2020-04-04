@@ -3,12 +3,12 @@
  * just waiting on access to phaser
  */
 
-class CardTest extends Phaser.Scene {
+class boot extends Phaser.Scene {
 
     fireball;
 
     constructor(){
-        super("cardtest")
+        super("boot")
     }
 
     preload(){
@@ -18,8 +18,10 @@ class CardTest extends Phaser.Scene {
 
     init(){}
 
-    create(){}
+    create(){
+        this.scene.start("cardtest");
+    }
  }
 
  // exports the class so it may be imported/required elsewhere
-module.exports = CardTest;
+module.exports = boot;
