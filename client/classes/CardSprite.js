@@ -25,10 +25,10 @@ class CardSprite {
     coords = {x: 0, y: 0}
 
     /** used to create an instance of the card */
-    constructor(card, scene){
+    constructor(x, y, card, scene){
         this.card = card;
         this.scene = scene;
-        this.constructGraghic();
+        this.constructGraghic(x, y);
     }
 
     /** used to link the stored Phaser elements to the current scene */
@@ -38,10 +38,13 @@ class CardSprite {
         this.scene.add.existing(this.descripText);
     }
 
-    /** Used to construct the graghic object or phaser group object upon getting the internal this.card */
-    constructGraghic(){
+    /** 
+     * Used to construct the graghic object or phaser group object upon getting the internal this.card
+     * Should only ever be called once upon the construction of this card 
+     */
+    constructGraghic(x,y){
         //create the main graghic
-        this.graghic = this.scene.add.sprite(200,200,"fireball");
+        this.graghic = this.scene.add.sprite(x,y,this.card.name + "_graghic");
         this.graghic.setOrigin(.5,.5)
         this.graghic.setScale(1.5)
         this.graghic.setInteractive();
@@ -53,14 +56,14 @@ class CardSprite {
         this.scene.input.on("dragend", this.stoppedDragging, this)
 
         //create the name text graghic
-        this.nameText = this.scene.add.text(this.graghic.x - 28, this.graghic.y - 59, 'Fire Ball',{
+        this.nameText = this.scene.add.text(this.graghic.x - 28, this.graghic.y - 59, this.card.name,{
             font: "12px consolas",
             color: "dark black"
         });
         this.nameText.setOrigin(0,0);
 
         //create the name text graghic
-        this.descripText = this.scene.add.text(this.graghic.x - 27, this.graghic.y + 28, "1 damage!",{
+        this.descripText = this.scene.add.text(this.graghic.x - 27, this.graghic.y + 28, this.card.description,{
             font: "5px consolas",
             color: "dark black"
         });
@@ -105,8 +108,8 @@ class CardSprite {
         this.descripText.setY(this.graghic.y + 28);
     }
 
-    /** Used to decide weather to shrink or enlarge based on the bool large, when the card is right clicked. Must Be Used With Event That Passes pointer */
-    rightClick(pointer){
+    /** Used to decide weather to shrink or enlarge based on the bool large, when the card is right clicked gameobject*/
+    rightClick(pointer, gameObject){
         if (pointer.rightButtonDown()){
             if(this.large == false){
                 this.large = true;
@@ -116,6 +119,7 @@ class CardSprite {
                 this.shrink();
             }
         }
+        console.log(gameObject, this.graghic);
     }
 
     /** used to center and enlarge the card so effects may be read */

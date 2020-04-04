@@ -15,8 +15,9 @@ class boot extends Phaser.Scene {
     }
 
     preload(){
-        this.load.image("fireball", "../assets/images/cards/fireball_card.png");
-        this.load.image("lightning", "../assets/images/cards/lightning_card.png");
+        this.load.image("Fireball_graghic", "../assets/images/cards/fireball_card.png");
+        this.load.image("Lightning_graghic", "../assets/images/cards/lightning_card.png");
+        this.load.image("Shield_graghic", "../assets/images/cards/shield_card.png");
     }
 
     init(){}
