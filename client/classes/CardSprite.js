@@ -27,3 +27,6 @@ class CardSprite {
 
     }
 }
+
+// exports the class so it may be imported/required elsewhere
+module.exports = CardSprite;
