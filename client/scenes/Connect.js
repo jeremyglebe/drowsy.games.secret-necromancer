@@ -69,7 +69,7 @@ class Connect extends Phaser.Scene {
         this.add.rectangle(640, 600, 240, 50, 0x88FF88, 0.5)
             .setOrigin(0.5).setInteractive()
             // When the box is clicked, open the editor
-            .on('pointerdown', this.onJoinButton, this);
+            .on('pointerdown', this.joinButtonClicked, this);
     }
 
     createEditorButton(rectangle, editor, x, y) {
@@ -86,9 +86,9 @@ class Connect extends Phaser.Scene {
             }, this);
     }
 
-    onJoinButton() {
+    joinButtonClicked() {
         client.connectTo(this.username.text, this.ipaddress.text, parseInt(this.port.text, 10));
-        this.scene.start('cardtest');
+        this.scene.start('Lobby');
     }
 
 }

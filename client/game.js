@@ -3,6 +3,7 @@ const Phaser = require("phaser");
 const cardtest = require("./scenes/cardtest");
 const boot = require("./scenes/boot");
 const Connect = require('./scenes/Connect');
+const Lobby = require('./scenes/Lobby');
 
 
 /** Start of the Phaser game object*/
@@ -31,7 +32,8 @@ const gameConfig = {
     scene: [
         boot,
         Connect,
-        cardtest
+        cardtest,
+        Lobby
     ]
 };
 

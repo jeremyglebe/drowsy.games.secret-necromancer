@@ -77,8 +77,10 @@ const onConnection = function (socket) {
     // Add the socket id to the id list
     idList.push(socket.id);
     // Check if the player is vip
-    if (numPlayers < 1)
+    if (numPlayers < 1) {
         vipPlayer = socket.id;
+        socket.emit('declareVIP');
+    }
     numPlayers++;
     // Add the player to username<->id maps
     idMap[uname] = socket.id;
