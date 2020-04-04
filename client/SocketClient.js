@@ -5,12 +5,16 @@ class SocketClient {
 
     /**
      * Connects to a given ip and port
+     * @param {string} username
      * @param {string} ip 
      * @param {number} port 
      */
-    static connectTo(ip, port) {
-        console.log('http://' + ip + ':' + port.toString());
-        this.socket = io('http://' + ip + ':' + port.toString());
+    static connectTo(username, ip, port) {
+        // Connect to the server
+        // and send a query establishing preferred username
+        this.socket = io('http://' + ip + ':' + port.toString(), {
+            query: 'username=' + username
+        });
     }
 
     /**
