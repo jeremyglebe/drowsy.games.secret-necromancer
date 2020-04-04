@@ -1,6 +1,9 @@
-var app = require('express')();
-var http = require('http').createServer(app);
-var io = require('socket.io')(http);
+const app = require('express')();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+
+// Game object classes
+const Field = require('./game/Field');
 
 // List of user ids
 var idList = [];
@@ -14,6 +17,8 @@ var vipPlayer = '';
 var numPlayers = 0;
 // Are we still "in the lobby", waiting for more players?
 var lobby = true;
+// Game field object
+var field = null;
 
 /**
  * Starts up the server and opens the listener
@@ -118,6 +123,8 @@ const onStart = function (socket) {
         printConnections();
         // Exit the lobby phase
         lobby = false;
+        // Create the Field object
+        field = new Field(Object.keys(idMap));
     }
 }
 
