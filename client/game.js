@@ -1,6 +1,7 @@
 //imports
 const Phaser = require("phaser");
 const cardtest = require("./scenes/cardtest");
+const boot = require("./scenes/boot");
 
 
 /** Start of the Phaser game object*/
@@ -18,17 +19,19 @@ const gameConfig = {
         height: 600
     },
 
+    pixelArt: true,
+
     dom: {
         createContainer: true
     },
 
     backgroundColor: '#000000',
 
-    scene: [cardtest]
+    scene: [cardtest,boot]
 };
 
 //create the primary game object
 const game = new Phaser.Game(gameConfig);
 
 // Starts the first scene, for now is a test
-game.scene.start("cardtest");
+game.scene.start("boot");
