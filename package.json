@@ -22,5 +22,12 @@
   "bugs": {
     "url": "https://github.com/jeremyglebe/game_jam_cardgame/issues"
   },
-  "homepage": "https://github.com/jeremyglebe/game_jam_cardgame#readme"
+  "homepage": "https://github.com/jeremyglebe/game_jam_cardgame#readme",
+  "dependencies": {
+    "phaser": "^3.22.0",
+    "socketio": "^1.0.0"
+  },
+  "devDependencies": {
+    "browser-sync": "^2.26.7"
+  }
 }
