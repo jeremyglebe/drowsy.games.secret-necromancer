@@ -4,7 +4,7 @@
   "description": "Secret identity card game revolving around dark arts and sorcery.",
   "main": "index.js",
   "scripts": {
-    "test": "browser-sync start --server --files ./client"
+    "test": "electron ./client/index.js dev"
   },
   "repository": {
     "type": "git",
@@ -24,10 +24,13 @@
   },
   "homepage": "https://github.com/jeremyglebe/game_jam_cardgame#readme",
   "dependencies": {
+    "electron": "^8.2.0",
+    "electron-reload": "^1.5.0",
     "phaser": "^3.22.0",
     "socketio": "^1.0.0"
   },
   "devDependencies": {
-    "browser-sync": "^2.26.7"
+    "browser-sync": "^2.26.7",
+    "electron-builder": "^22.4.1"
   }
 }

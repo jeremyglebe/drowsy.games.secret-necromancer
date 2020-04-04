@@ -1,5 +1,8 @@
+console.log("Made it here.");
+
 //imports
 const Phaser = require("phaser");
+
 
 /** Start of the Phaser game object*/
 
