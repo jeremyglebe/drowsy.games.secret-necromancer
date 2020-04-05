@@ -1,4 +1,5 @@
 node_modules
 .vscode
 **/defs/**
-jsconfig.json
+jsconfig.
+4-clients.sh

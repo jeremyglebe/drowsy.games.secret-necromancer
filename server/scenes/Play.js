@@ -6,11 +6,16 @@ var field = new Field(Object.values(server.usernames));
 // Tell the clients to start the game with the given field
 server.emit('start game', field.getCliField());
 
-// Emit each play their full player object
+// Wait a moment for clients to transition scenes
 setTimeout(() => {
     for (let id of Object.keys(server.sockets)) {
+        // Send each client their player object
         server.emitTo(id, 'your player', field.players[server.usernames[id]]);
     }
+    setTimeout(() => {
+        // Deal cards to all the players
+        field.dealHands(Object.values(server.usernames));
+    }, 25);
 }, 25);
 
 // As long as we're running the Play scene, keep sending field updates
