@@ -34,6 +34,8 @@ class Connect extends Phaser.Scene {
     }
 
     create() {
+        //create the background
+        let bg = this.add.sprite(0,0,"connectscreen_graphic").setOrigin(0,0);
         // Create the prompts
         this.add.text(640, 80, "Enter a Username")
             .setOrigin(0.5).setFontSize(24);

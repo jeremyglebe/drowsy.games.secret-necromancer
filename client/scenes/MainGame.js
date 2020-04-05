@@ -19,7 +19,26 @@ class MainGame extends Phaser.Scene {
          * Since we don't know who that is yet, we'll wait for the event.
          */
         this.otherPlayers = field.players;
+        /** Used to keep track of weather it is the players turn */
+        this.isYourTurn = false;
+        /** Used to store the string displayed by quickTextDisplayTween, scale is managed by tween */
+        this.quickText = this.add.text(640,200,"QuickText",{color: "white", bold: true}).setOrigin(.5,.5);
+        this.quickText.setFontSize(50);
+        this.quickText.setScale(0);
+        this.quickText.depth = 50;
 
+        /** A tween for quickly displaying text on screen */
+        this.quickTextDisplayTween = this.tweens.add({
+            targets: this.quickText,
+            y : 150,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 500,
+            paused: true,
+            yoyo: true,
+            hold: 1000,
+            repeat: false,
+        });
     }
 
     create() {
@@ -37,14 +56,15 @@ class MainGame extends Phaser.Scene {
             this.initalSetPlayersSprites();
         });
 
+
+        this.quickTextDisplay("It's yout turn!");
     }
 
     placePlayerSprites() {
         //sort them at the bottom are of the screen with 200px padding on both sides of the hand
         this.placeHand();
         //place the character card
-        this.mainPlayer.characterSprite = new CardSprite(50, 650, this.mainPlayer.character, 0, this);
-
+        this.mainPlayer.characterSprite = new CardSprite(50, 650, this.mainPlayer.character, 0, this); 
         this.mainPlayer.characterSprite.setDraggable(false);
         //place the role card
         this.mainPlayer.RoleSprite = new CardSprite(50, 500, this.mainPlayer.role, 0, this);
@@ -140,7 +160,7 @@ class MainGame extends Phaser.Scene {
         let keys = Object.keys(this.otherPlayers);
         //check if the card overlapped with any of the players cards
         for (let key of keys) {
-            if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds())) {
+            if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds()) && this.isYourTurn) {
                 console.log("You put a card on " + key);
                 overlapped = true;
             }
@@ -148,8 +168,70 @@ class MainGame extends Phaser.Scene {
         if (!overlapped) {
             that.restorePos();
         }
-
     }
+
+    turnChange(username){
+        //check if it is this client's turn
+        if(username == this.mainPlayer.username){
+            this.isYourTurn = true;
+            this.quickTextDisplay("It's yout turn!");
+        } else {
+            this.quickTextDisplay("It's " + username + "'s turn!");
+        }
+    }
+
+    quickTextDisplay(string){
+        this.quickText.setText(string);
+        this.quickTextDisplayTween.play();
+    }
+
+    checkSync(data){
+        //data to check against
+        let checkMainPlayer = data.player;
+        let checkOtherPlayers = data.field.players;
+        //flags
+        let mainPlayerHandBad = false;
+
+        //check sync on client's main player
+        //check health
+        if (checkMainPlayer.health != this.mainPlayer.health){setMainPlayersHealth(checkMainPlayer.health);}
+        //check hand size
+        if(checkMainPlayer.hand.length != this.mainPlayer.hand.length){mainPlayerHandBad = true;}
+        //if hand size is good, check individual cards
+        if(!mainPlayerHandBad){
+            for (let i = 0; i < checkMainPlayer.hand.length; i++){
+                if(checkMainPlayer.hand[i] != this.mainPlayer.hand[i]){
+                    mainPlayerHandBad = true;
+                }
+            }
+        }
+        //if it's not synced, remove the hand and manually resync it
+        if(mainPlayerHandBad){
+            for(let i = 0; i < this.mainPlayer.hand.length; i++){
+                this.removeCard();
+            }
+            for(let i = 0; i < this.checkMainPlayer.hand.length; i++){
+                this.addCard(this.checkMainPlayer.hand[i]);
+            }
+        }
+
+        //check the other players data
+        let keys = Object.keys(this.otherPlayers);
+        for (let i = 0; i < keys.length; i++){
+            //check other players health
+            if(checkOtherPlayers[keys[i]].health != this.otherPlayers[keys[i]].health){
+                this.setOtherPlayersHealth(keys[i], checkOtherPlayers[keys[i]].health);
+            }
+            //check card count
+            if(checkOtherPlayers[keys[i]].hand != this.otherPlayers[keys[i]].hand){
+                this.setOtherPlayersCardCount(keys[i], checkOtherPlayers[keys[i]].hand);
+            }
+        }
+    }
+
+
+
+
 
 }
 
