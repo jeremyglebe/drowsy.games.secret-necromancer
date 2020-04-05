@@ -9,6 +9,7 @@ const socket = require("../SocketClient");
  */
 class CardSprite {
 
+    //Memember varibles
     /** Stores the Card passed to it from the server */
     card;
     /**
@@ -22,8 +23,6 @@ class CardSprite {
     descripText;
     /** Stores the scene the card is being link/created in */
     scene;
-    /** Stores if the card is in the enlarged state or not currently, default is false */
-    large = false;
     /** Stores the original x and y of the card from when it was changed last */
     coords = { x: 0, y: 0 }
     /** 
@@ -31,12 +30,21 @@ class CardSprite {
      * at the same time. This is not used in enlarge. default 0.
      */
     depth = 0;
-    /** Keeps track if any card in the game is currently enlarged */
-    static anyCardIsEnlarged = false;
-    /** Used to track in index of a card in a list, useful for tracking events and poistions of objects in array at the time of events */
+    /** Used to track index of a card in a list, useful for tracking events and poistions of objects in array at the time of events */
     index;
     /** Special emitter for custom events */
     specEmitter;
+
+    //flags
+    /** Stores if the card is in the enlarged state or not currently, default is false */
+    large = false;
+    /** Keeps track if any card in the game is currently enlarged, default is false */
+    static anyCardIsEnlarged = false;
+    /** Tells if the card is right Clickable, default is true */
+    rightClickable = true;
+    /** Tells if the card should ever be draggable, default is true */
+    permenantDraggable = true;
+
 
     /** used to create an instance of the card */
     constructor(x, y, card, depth, scene) {
@@ -68,7 +76,7 @@ class CardSprite {
         //let listerners for certain emitted events
         // this.scene.input.on('pointerdown', this.rightClick, this)
         this.graphic.on('pointerdown', this.rightClick, this);
-        this.scene.input.on("dragstart", this.storePos, this)
+        this.scene.input.on("dragstart", this.dragStart, this)
         this.scene.input.on('drag', this.whenDragged, this);
         this.scene.input.on("dragend", this.stoppedDragging, this);
 
@@ -92,26 +100,34 @@ class CardSprite {
         this.descripText.depth = this.depth;
     }
 
-    test(){
-        console.log("works");
-    }
-
     /** Pass in true or false to set weather the card is draggable or not */
-    setDraggable(bool) {
-        this.scene.input.setDraggable(this.graphic, bool);
+    setDraggable(bool, changePermenant = false) {
+        //check if the permenant draggable state should be changed, if so change it
+        if(changePermenant){
+            this.permenantDraggable = bool;
+            this.scene.input.setDraggable(this.graphic, bool);
+        }
+        //if the card is allowed to be draggable
+        if(!changePermenant){
+            this.scene.input.setDraggable(this.graphic, bool);
+        }
     }
 
     /** Used to Store the current coordinates of the card graphic */
-    storePos() {
-        this.coords.x = this.graphic.x;
-        this.coords.y = this.graphic.y;
+    setDefaultPos(x = this.graphic.x, y = this.graphic.y) {
+        this.coords.x = x;
+        this.coords.y = y;
     }
 
     /** Used to restore the graphic to the location last stored in coords */
-    restorePos() {
+    restoreDefaultPos() {
         this.graphic.setX(this.coords.x);
         this.graphic.setY(this.coords.y);
         this.moveText();
+    }
+
+    dragStart(){
+        this.rightClickable = false;
     }
 
     /** What to do when the object is being dragged */
@@ -124,6 +140,7 @@ class CardSprite {
     /** What to do when the object is released from being dragged */
     stoppedDragging() {
         this.specEmitter.emit('cardDragEnd',this.graphic.getBounds(),this);
+        this.rightClickable = true;
     }
 
     /** Used to move the text when being dragged */
@@ -164,8 +181,8 @@ class CardSprite {
 
     /** used to center and enlarge the card so effects may be read */
     enlarge() {
-        //store the current x and y
-        this.storePos();
+        //set so it can't be dragged when big
+        this.setDraggable(false);
 
         // move everything to the center
         this.graphic.setX(640);
@@ -189,7 +206,7 @@ class CardSprite {
     /** Used to return the card back to normal after enlarge has been used */
     shrink() {
         //move everything back
-        this.restorePos();
+        this.restoreDefaultPos();
         this.moveText();
 
         //shrink everything down
@@ -201,6 +218,11 @@ class CardSprite {
         this.graphic.depth = this.depth;
         this.nameText.depth = this.depth;
         this.descripText.depth = this.depth;
+
+        //set so it can be dragged again
+        if (this.permenantDraggable == true){
+            this.setDraggable(true);
+        }
     }
 
     /** goes in and desstroy Phaser Sprites for this object */
