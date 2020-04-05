@@ -41,9 +41,6 @@ const Field = require('../game/Field');
 
 // Create a game field to pass to the players
 var field = new Field(Object.values(server.usernames));
-// As long as we're running the Play scene, keep sending field updates
-// to the console. Server admin should be able to monitor progress.
-setInterval(field.print.bind(field), 15000);
 
 // Start the match
 startMatch();
@@ -65,4 +62,20 @@ function startMatch() {
             field.nextTurn();
         }, 25);
     }, 25);
+
 }
+
+// As long as we're running the Play scene, keep sending field updates
+// to the console and keep syncing with the clients.
+setInterval(() => {
+    field.print.bind(field);
+
+    // Synchronize
+    for (let id of Object.keys(server.sockets)) {
+        server.emitTo(id, 'sync', {
+            field: field.getCliField(),
+            player: field.players[server.usernames[id]]
+        });
+    }
+
+}, 15000);
