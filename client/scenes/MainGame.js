@@ -36,6 +36,11 @@ class MainGame extends Phaser.Scene {
             this.initalSetPlayersSprites();
         });
 
+        // When the server gives you a new card, add it to the local hand
+        client.on('your new card', (card) => {
+            this.addCard(card);
+        });
+
     }
 
     placePlayerSprites() {
