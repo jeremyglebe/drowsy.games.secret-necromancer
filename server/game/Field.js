@@ -13,6 +13,13 @@
  *     Sent to: all other clients except the one who receives the new card
  *     Argument: the username of the client receiving the new card
  * 
+ * 'spell played': sent after sucessful spell activation server-side
+ *     Sent to: all clients
+ *     Argument: { 
+ *                   field: client safe field object,
+ *                   cardname: card that was played
+ *               }
+ * 
  * 'turn start': sent by the server when a new player turn is starting
  *     Sent to: all clients
  *     Argument: username of the client whose turn is starting
@@ -162,23 +169,32 @@ class Field {
         let name = spellInfo.name;
         let targets = spellInfo.targets;
         // Change id->names map to names->id map
-        nameToID = tools.reverseObject(server.usernames);
+        let nameToID = tools.reverseObject(server.usernames);
         // Get id associated with the current player's username
         let currentPlayerID = nameToID[this.turnQueue[0]];
         // Make sure that it is actually the player whose turn it is
         if (socket.id == currentPlayerID) {
+            console.log("player activated a spell");
             // Get a reference to the player
             let player = this.players[this.turnQueue[0]];
+            console.log(player, 'played', name);
+            console.log("card at index is", player.hand[index].name);
             // Confirm the card names match at the given index
             if (name == player.hand[index].name) {
+                console.log("confirmed cards match!");
                 // Store the card
                 let card = player.hand[index];
                 // Activate the spell
-                card.activate(this, targets);
+                card.activate(this, player.username, targets);
                 // Remove the card from the player's hand
                 player.hand.splice(index, 1);
                 // Add card to the discard pile
                 this.discard.push(card);
+                // Tell all players that a card was played
+                server.emit('spell played', {
+                    field: this,
+                    cardname: name
+                });
             }
         }
     }

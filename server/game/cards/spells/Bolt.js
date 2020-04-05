@@ -9,7 +9,7 @@ class Bolt extends Spell {
             + "on target player.", "player");
     }
 
-    activate(field, target) {
+    activate(field, caster, target) {
         let player = field.players[target];
         player.calcStats();
         let damage = tools.random.int(10, 20);
