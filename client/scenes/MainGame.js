@@ -13,11 +13,11 @@ const Tiny = require("../../server/game/characters/Tiny");
 const Bacon = require("../../server/game/characters/Bacon")
 const Lilium = require("../../server/game/characters/Lilium")
 
-class Maingame extends Phaser.Scene {
+class MainGame extends Phaser.Scene {
 
 
     constructor(){
-        super("Maingame");
+        super("MainGame");
     }
 
     /** stores an array of the card sprites */
@@ -142,4 +142,4 @@ class Maingame extends Phaser.Scene {
 }
 
 // exports the class so it may be imported/required elsewhere
- module.exports = Maingame;
+ module.exports = MainGame;

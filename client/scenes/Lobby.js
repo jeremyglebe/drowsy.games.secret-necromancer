@@ -27,7 +27,7 @@ class Lobby extends Phaser.Scene {
         client.on('update players', this.onUpdatePlayers.bind(this));
         // When the server says to start, go to next scene. Pass in field.
         client.on('start game', (field) => {
-            this.scene.start('CardTest', field);
+            this.scene.start('MainGame', field);
         });
     }
 
