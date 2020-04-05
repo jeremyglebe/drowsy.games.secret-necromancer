@@ -6,7 +6,7 @@ class Player {
      * @param {string} role 
      * @param {any} field
      */
-    constructor(username, role, field) {
+    constructor(username, role, character, field) {
         /**
          * Username of the player. Field stores players in an object keyed by
          * username, so this is mostly for rare instances of reverse-lookup.
@@ -20,6 +20,8 @@ class Player {
          * Necromancer is a complete mystery.
          */
         this.role = role;
+        /** Used to store what character the player is */
+        this.character = character;
         /** A number between 1 & 100 representing the health of the player */
         this.health = 100;
         /**
@@ -34,13 +36,13 @@ class Player {
         /** List of dark arts cards in the player's hand (if they're a necromancer) */
         this.dahand = [];
         // Draw 5 random cards
-        for (let i = 0; i < 5; i++)
-            this.drawFrom(field.deck);
+        // for (let i = 0; i < 5; i++)
+        //     this.drawFrom(field.deck);
         // If the player is a necromancer, draw dark arts
-        if (this.role == 'necromancer') {
-            for (let i = 0; i < 3; i++)
-                this.drawFrom(field.dadeck);
-        }
+        // if (this.role == 'necromancer') {
+        //     for (let i = 0; i < 3; i++)
+        //         this.drawFrom(field.dadeck);
+        // }
     }
 
     /**

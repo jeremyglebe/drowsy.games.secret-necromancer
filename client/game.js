@@ -4,6 +4,7 @@ const Boot = require("./scenes/Boot");
 const CardTest = require("./scenes/Cardtest");
 const Connect = require('./scenes/Connect');
 const Lobby = require('./scenes/Lobby');
+const Maingame = require("./scenes/Maingame");
 
 /** Start of the Phaser game object*/
 
@@ -32,7 +33,8 @@ const gameConfig = {
         Boot,
         Connect,
         CardTest,
-        Lobby
+        Lobby,
+        Maingame
     ]
 };
 
