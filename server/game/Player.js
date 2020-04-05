@@ -33,36 +33,8 @@ class Player {
         this.focus = 0;
         /** List of cards in the player's hand. */
         this.hand = [];
-        /** List of dark arts cards in the player's hand (if they're a necromancer) */
-        this.dahand = [];
-        // Draw 5 random cards
-        // for (let i = 0; i < 5; i++)
-        //     this.drawFrom(field.deck);
-        // If the player is a necromancer, draw dark arts
-        // if (this.role == 'necromancer') {
-        //     for (let i = 0; i < 3; i++)
-        //         this.drawFrom(field.dadeck);
-        // }
     }
 
-    /**
-     * Draws a card from a deck and puts it into the player's hand.
-     * @param {array} deck 
-     */
-    drawFrom(deck) {
-        let card = deck.pop();
-        if (card) {
-            if (!card.evil)
-                this.hand.push(card);
-            else if (this.role == 'necromancer') {
-                this.dahand.push(card);
-            } else {
-                console.log("You can't have an evil card! You're a ", this.role, '!');
-            }
-        } else {
-            console.log("Deck is empty :(");
-        }
-    }
 }
 
 module.exports = Player;

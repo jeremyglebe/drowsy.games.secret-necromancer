@@ -20,6 +20,7 @@ class SocketServer {
     static usernames = {};
 
     static emit(key, data) {
+        // console.log(key, data);
         SocketServer.io.emit(key, data);
     }
 

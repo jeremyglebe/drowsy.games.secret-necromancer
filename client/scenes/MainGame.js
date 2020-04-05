@@ -1,145 +1,156 @@
-//imports
+const client = require('../SocketClient');
 const Phaser = require("phaser");
 const CardSprite = require("../classes/CardSprite");
-const Fireball = require("../../server/game/cards/Fireball");
-const Lightning = require("../../server/game/cards/Lightning");
-const Shield = require("../../server/game/cards/Shield");
-const Grandmaster = require("../../server/game/roles/Grandmaster");
-const Wizard = require("../../server/game/roles/Wizard");
-const Necromancer = require("../../server/game/roles/Necromancer");
-const Player = require("../../server/game/Player");
-const Field = require("../../server/game/Field");
-const Tiny = require("../../server/game/characters/Tiny");
-const Bacon = require("../../server/game/characters/Bacon")
-const Lilium = require("../../server/game/characters/Lilium")
 
 class MainGame extends Phaser.Scene {
 
-
-    constructor(){
+    constructor() {
         super("MainGame");
     }
 
     /** stores an array of the card sprites */
     hand = [];
 
-    init(){
-        //creat test field
-        let feild = new Field(["greg","kenny", "The Big Z","Jeremy"])
-        //create role to pass in
-        let role = new Grandmaster;
-        //create players character
-        let char = new Tiny;
-        //create test player to pass in
-        this.mainPlayer = new Player("The Big Z",role,char,Field);
-        //create players deck
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.placePlayerSprites();
+    init(field) {
 
-        //set up an array of they other players
-        this.otherPlayers = [];
-        //create their characters
-        let char02 = new Tiny;
-        let char03 = new Bacon;
-        let char04 = new Bacon;
-        let char05 = new Lilium;
-        let otherPlayer02 = new Player("The Big Z",role,char02,Field);
-        let otherPlayer03 = new Player("The Big Z",role,char03,Field);
-        let otherPlayer04 = new Player("The Big Z",role,char04,Field);
-        let otherPlayer05 = new Player("The Big Z",role,char05,Field);
-        this.otherPlayers.push(otherPlayer02);
-        this.otherPlayers.push(otherPlayer03);
-        this.otherPlayers.push(otherPlayer04);
-        this.otherPlayers.push(otherPlayer05);
-        for (let i = 0; i < this.otherPlayers.length; i++){
-            for (let j = 0; j < i+1; j++){
-                this.otherPlayers[i].hand.push(new Fireball);
-            }
-        }
+        /**
+         * Map of usernames to Player instances. Duplicate of the players
+         * object on field, except we'll remove the client's personal Player.
+         * Since we don't know who that is yet, we'll wait for the event.
+         */
+        this.otherPlayers = field.players;
 
-        this.placeOtherPlayersSprites();
     }
 
-    create(){}
+    create() {
 
-    placePlayerSprites(){
-        //place all the cards that are in the players hand
-        for (let i = 0; i < this.mainPlayer.hand.length; i++){
-            let tempCard = new CardSprite(200, 650, this.mainPlayer.hand[i], this.mainPlayer.hand.length - i, this);
-            this.hand.push(tempCard);
-        }
+        // When the client receives their player info, start building the screen
+        client.on('your player', (player) => {
+            console.log(player);
+            // Store the player
+            this.mainPlayer = player;
+            this.mainPlayer.handSprites = [];
+            // Remove this client's player from the other players list
+            delete this.otherPlayers[this.mainPlayer.username];
+            this.placePlayerSprites();
+            this.initalSetPlayersSprites();
+        });
+
+    }
+
+    placePlayerSprites() {
         //sort them at the bottom are of the screen with 200px padding on both sides of the hand
         this.placeHand();
-
         //place the character card
-        this.mainPlayer.characterSprite = new CardSprite(50,650,this.mainPlayer.character,0,this);
+        this.mainPlayer.characterSprite = new CardSprite(50, 650, this.mainPlayer.character, 0, this);
+
+        this.mainPlayer.characterSprite.setDraggable(false);
         //place the role card
-        this.mainPlayer.RoleSprite = new CardSprite(50,500,this.mainPlayer.role,0,this);
+        this.mainPlayer.RoleSprite = new CardSprite(50, 500, this.mainPlayer.role, 0, this);
+        this.mainPlayer.RoleSprite.setDraggable(false);
+        //place the health text
+        this.mainPlayer.healthText = this.add.text(1140, 650, String(this.mainPlayer.health) + "/100", { color: "white" });
+        this.mainPlayer.healthText.setFontSize(30);
     }
 
-    placeOtherPlayersSprites(){
-        this.otherPlayers.charSprites = [];
-        this.otherPlayers.healthText = [];
-        this.otherPlayers.cardCountIcons = [];
-        this.otherPlayers.cardCountText = [];
+    initalSetPlayersSprites() {
+        let keys = Object.keys(this.otherPlayers);
         let textStyle = {
-            Font: "20px", 
+            Font: "20px",
             color: "white"
         }
         //We assume atleast 3 players since that is the server set minimum, we place them first, then add more if there is more
         //First Other Player
-        this.otherPlayers.charSprites[0] = new CardSprite(50, 70, this.otherPlayers[0].character, 0, this);
-        this.otherPlayers.healthText[0] = this.add.text(100,15, String(this.otherPlayers[0].health) + "/100",textStyle);
-        this.otherPlayers.cardCountIcons[0] = this.add.sprite(120,70,"backofspell_graphic").setScale(.7);
-        this.otherPlayers.cardCountText[0] = this.add.text(150,60, String(this.otherPlayers[0].hand.length),textStyle);
+        this.otherPlayers[keys[0]].charSprite = new CardSprite(50, 70, this.otherPlayers[keys[0]].character, 0, this);
+        this.otherPlayers[keys[0]].charSprite.setDraggable(false);
+        this.otherPlayers[keys[0]].healthText = this.add.text(100, 15, String(this.otherPlayers[keys[0]].health) + "/100", textStyle);
+        this.otherPlayers[keys[0]].cardCountIcons = this.add.sprite(120, 70, "backofspell_graphic").setScale(.7);
+        this.otherPlayers[keys[0]].cardCountText = this.add.text(150, 60, String(this.otherPlayers[keys[0]].hand), textStyle);
         //Second Other Player
-        this.otherPlayers.charSprites[1] = new CardSprite(1230, 70, this.otherPlayers[1].character, 0, this);
-        this.otherPlayers.healthText[1] = this.add.text(1110,15, String(this.otherPlayers[1].health) + "/100",textStyle);
-        this.otherPlayers.cardCountIcons[1] = this.add.sprite(1160,70,"backofspell_graphic").setScale(.7);
-        this.otherPlayers.cardCountText[1] = this.add.text(1120,60, String(this.otherPlayers[1].hand.length),textStyle);
+        this.otherPlayers[keys[1]].charSprite = new CardSprite(1230, 70, this.otherPlayers[keys[1]].character, 0, this);
+        this.otherPlayers[keys[1]].charSprite.setDraggable(false);
+        this.otherPlayers[keys[1]].healthText = this.add.text(1110, 15, String(this.otherPlayers[keys[1]].health) + "/100", textStyle);
+        this.otherPlayers[keys[1]].cardCountIcons = this.add.sprite(1160, 70, "backofspell_graphic").setScale(.7);
+        this.otherPlayers[keys[1]].cardCountText = this.add.text(1120, 60, String(this.otherPlayers[keys[1]].hand), textStyle);
         //Third Other Player if there is one
-        if(this.otherPlayers.length >= 3){
-            this.otherPlayers.charSprites[2] = new CardSprite(50, 250, this.otherPlayers[2].character, 0, this);
-            this.otherPlayers.healthText[2] = this.add.text(100,195, String(this.otherPlayers[2].health) + "/100",textStyle);
-            this.otherPlayers.cardCountIcons[2] = this.add.sprite(120,250,"backofspell_graphic").setScale(.7);
-            this.otherPlayers.cardCountText[2] = this.add.text(150,240, String(this.otherPlayers[2].hand.length),textStyle);
+        if (keys.length >= 3) {
+            this.otherPlayers[keys[2]].charSprite = new CardSprite(50, 250, this.otherPlayers[keys[2]].character, 0, this);
+            this.otherPlayers[keys[2]].charSprite.setDraggable(false);
+            this.otherPlayers[keys[2]].healthText = this.add.text(100, 195, String(this.otherPlayers[keys[2]].health) + "/100", textStyle);
+            this.otherPlayers[keys[2]].cardCountIcons = this.add.sprite(120, 250, "backofspell_graphic").setScale(.7);
+            this.otherPlayers[keys[2]].cardCountText = this.add.text(150, 240, String(this.otherPlayers[keys[2]].hand), textStyle);
         }
         //Fourth Other Player if there is one
-        if(this.otherPlayers.length == 4){
-            this.otherPlayers.charSprites[3] = new CardSprite(1230, 250, this.otherPlayers[3].character, 0, this);
-            this.otherPlayers.healthText[3] = this.add.text(1110,195, String(this.otherPlayers[3].health) + "/100",textStyle);
-            this.otherPlayers.cardCountIcons[3] = this.add.sprite(1160,250,"backofspell_graphic").setScale(.7);
-            this.otherPlayers.cardCountText[3] = this.add.text(1120,240, String(this.otherPlayers[3].hand.length),textStyle);
+        if (keys.length == 4) {
+            this.otherPlayers[keys[3]].charSprite = new CardSprite(1230, 250, this.otherPlayers[keys[3]].character, 0, this);
+            this.otherPlayers[keys[3]].charSprite.setDraggable(false);
+            this.otherPlayers[keys[3]].healthText = this.add.text(1110, 195, String(this.otherPlayers[keys[3]].health) + "/100", textStyle);
+            this.otherPlayers[keys[3]].cardCountIcons = this.add.sprite(1160, 250, "backofspell_graphic").setScale(.7);
+            this.otherPlayers[keys[3]].cardCountText = this.add.text(1120, 240, String(this.otherPlayers[keys[3]].hand), textStyle);
         }
     }
 
-    placeHand(){
+    placeHand() {
         let increment = 880 / this.mainPlayer.hand.length;
         let pos = 200;
-        for (let i = 0; i < this.mainPlayer.hand.length; i++){
-            this.hand[i].move(pos,650);
+        for (let i = 0; i < this.mainPlayer.hand.length; i++) {
+            this.hand[i].move(pos, 650);
             this.hand[i].setDepth(this.mainPlayer.hand.length - i);
             pos += increment;
         }
     }
+
+    setOtherPlayersCardCount(username, newCount) {
+        this.otherPlayers[username].hand = newCount;
+        this.otherPlayers[username].cardCountText.setText(String(newCount));
+    }
+
+    setOtherPlayersHealth(username, health) {
+        this.otherPlayers[username].health = health;
+        this.otherPlayers[username].healthText.setText(String(health) + "/100");
+    }
+
+    setMainPlayersHealth(health) {
+        this.mainPlayer.health = health;
+        this.mainPlayer.healthText.setText(String(health) + "/100");
+    }
+
+    removeCard(index = 0) {
+        //remove the card object
+        this.mainPlayer.hand.splice(index, 1);
+        //remove the cards graphical representation
+        let destroyArray = this.hand.splice(index, 1);
+        destroyArray[0].destroy();
+        //replace cards as needed
+        this.placeHand();
+    }
+
+    addCard(card) {
+        this.mainPlayer.hand.push(card);
+        let tempCard = new CardSprite(200, 650, card, 0, this);
+        tempCard.specEmitter.on("cardDragEnd", this.checkOverlap, this);
+        this.hand.push(tempCard);
+        this.placeHand();
+    }
+
+    checkOverlap(cardBounds, that) {
+        let overlapped = false;
+        //grab the keys of our players to check
+        let keys = Object.keys(this.otherPlayers);
+        //check if the card overlapped with any of the players cards
+        for (let key of keys) {
+            if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds())) {
+                console.log("You put a card on " + key);
+                overlapped = true;
+            }
+        }
+        if (!overlapped) {
+            that.restorePos();
+        }
+
+    }
+
 }
 
 // exports the class so it may be imported/required elsewhere
- module.exports = MainGame;
+module.exports = MainGame;
