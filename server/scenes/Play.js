@@ -54,6 +54,8 @@ function startMatch() {
         setTimeout(() => {
             // Deal cards to all the players
             field.dealHands(Object.values(server.usernames));
+            // Start the first turn of the game
+            field.nextTurn();
         }, 25);
     }, 25);
 }
