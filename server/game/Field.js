@@ -70,7 +70,7 @@ class Field {
     createPlayers(usernames) {
         // Generate a random turn queue
         this.turnQueue = Array.from(usernames);
-        tools.shuffle(turnQueue);
+        tools.shuffle(this.turnQueue);
 
         // Shuffle the users to pick random roles
         tools.shuffle(usernames);
@@ -96,8 +96,12 @@ class Field {
             // For each username, get the associated id
             let id = tools.reverseObject(server.usernames)[name];
             // For each id, add all necessary listeners
-            server.sockets[id].on('play spell', () => { });
-            server.sockets[id].on('turn end', () => { });
+            server.sockets[id].on('play spell', (spellInfo) => {
+                this.onPlaySpell(server.sockets[id], spellInfo);
+            });
+            server.sockets[id].on('turn end', () => {
+                this.onTurnEnd(server.sockets[id]);
+            });
         }
     }
 
@@ -181,15 +185,13 @@ class Field {
 
     onTurnEnd(socket) {
         // Change id->names map to names->id map
-        nameToID = tools.reverseObject(server.usernames);
+        let nameToID = tools.reverseObject(server.usernames);
         // Get id associated with the current player's username
         let currentPlayerID = nameToID[this.turnQueue[0]];
         // Make sure that it is actually the player whose turn it is
         if (socket.id == currentPlayerID) {
             // Go to the next turn
             this.nextTurn();
-            // Let the clients know a new turn has started
-            server.emit('turn start', this.turnQueue[0]);
         }
     }
 
@@ -213,7 +215,7 @@ class Field {
             card
         );
         // Let everyone else know that the player has gained a card
-        server.emitTo(
+        server.emitExcept(
             tools.reverseObject(server.usernames)[username],
             'player new card', username
         );
@@ -227,6 +229,10 @@ class Field {
         let first = this.turnQueue.shift();
         // Push first to now be the last element
         this.turnQueue.push(first);
+        // Let the clients know a new turn has started
+        server.emit('turn start', this.turnQueue[0]);
+        // The person whose turn it now is draws a card
+        this.sendCard(this.turnQueue[0]);
     }
 }
 
