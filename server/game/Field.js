@@ -1,9 +1,11 @@
 const tools = require('../Tools');
+const server = require('../SocketServer');
 const Player = require('./Player');
 const Grandmaster = require('./roles/Grandmaster');
 const Necromancer = require('./roles/Necromancer');
 const Sorcerer = require('./roles/Sorcerer');
 const CharDeck = require('./cards/decks/CharDeck');
+const MainDeck = require('./cards/decks/MainDeck');
 
 class Field {
 
@@ -21,6 +23,12 @@ class Field {
         /** List of cards in the deck */
         this.deck = [];
 
+        // Create the player objects
+        this.createPlayers(usernames);
+
+    }
+
+    createPlayers(usernames) {
         // Shuffle the users to pick random roles
         tools.shuffle(usernames);
         // Create a grandmaster (if there's at least 4 players)
@@ -34,6 +42,26 @@ class Field {
         // Create a bunch of sorcerers
         for (let name of usernames) {
             this.players[name] = new Player(name, new Sorcerer(), CharDeck.pop(), this);
+        }
+    }
+
+    dealHands(usernames) {
+        for (let name of usernames) {
+            let hand = this.players[name].hand;
+            for (let i = 0; i < 5; i++) {
+                // Draw the card from the deck
+                let card = MainDeck.pop();
+                // Add the card to the hand
+                hand.push(card);
+                // Let the client know about the card
+                server.emitTo(
+                    // Change the id->username map to a username->id map
+                    // Then subscript the username to get the id
+                    tools.reverseObject(server.usernames)[name],
+                    'your new card',
+                    card
+                )
+            }
         }
     }
 
@@ -68,7 +96,6 @@ class Field {
      * Prints status and info about the field
      */
     print() {
-        console.log(this.players);
         console.log(""
             + "********************************\n"
             + "********* FIELD STATUS *********\n"
@@ -76,7 +103,7 @@ class Field {
         for (let ply of Object.values(this.players)) {
             console.log(ply.username);
             console.log("HP:", ply.health);
-            console.log("Hand:", ply.hand, '\n');
+            console.dir(ply.hand, { depth: 0 });
         }
     }
 
