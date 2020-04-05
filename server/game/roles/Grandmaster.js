@@ -1,13 +1,12 @@
-// Imports
 const Role = require("./Role");
 
 class Grandmaster extends Role {
-     
-    name = "Grandmaster";
-    description = "You must takeout both\nthe wizards and the\nnecromancer";
 
-    constructor(){
-        super(Grandmaster.name,Grandmaster.description);
+    constructor() {
+        super("Grandmaster", ""
+            + "You must takeout both\n"
+            + "the wizards and the\n"
+            + "necromancer");
     }
 }
 

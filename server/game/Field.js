@@ -1,5 +1,8 @@
 const tools = require('../Tools');
 const Player = require('./Player');
+const Grandmaster = require('./roles/Grandmaster');
+const Necromancer = require('./roles/Necromancer');
+const Sorcerer = require('./roles/Sorcerer');
 const CharDeck = require('./cards/decks/CharDeck');
 
 class Field {
@@ -23,14 +26,14 @@ class Field {
         // Create a grandmaster (if there's at least 4 players)
         if (usernames.length >= 4) {
             let grand = usernames.pop();
-            this.players[grand] = new Player(grand, 'grandmaster', CharDeck.pop(), this);
+            this.players[grand] = new Player(grand, new Grandmaster(), CharDeck.pop(), this);
         }
         // Create a necromancer
         let necro = usernames.pop();
-        this.players[necro] = new Player(necro, 'necromancer', CharDeck.pop(), this);
+        this.players[necro] = new Player(necro, new Necromancer(), CharDeck.pop(), this);
         // Create a bunch of sorcerers
         for (let name of usernames) {
-            this.players[name] = new Player(name, 'sorcerer', CharDeck.pop(), this);
+            this.players[name] = new Player(name, new Sorcerer(), CharDeck.pop(), this);
         }
     }
 
