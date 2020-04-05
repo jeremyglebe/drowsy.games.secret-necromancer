@@ -30,6 +30,7 @@ class CardSprite {
     depth = 0;
     /** Keeps track if any card in the game is currently enlarged */
     static anyCardIsEnlarged = false;
+    /** Used to track in index of a card in a list, useful for tracking events and poistions of objects in array at the time of events */
 
     /** used to create an instance of the card */
     constructor(x, y, card, depth, scene){
@@ -82,6 +83,11 @@ class CardSprite {
         this.graphic.depth = this.depth;
         this.nameText.depth = this.depth;
         this.descripText.depth = this.depth;
+    }
+
+    /** Pass in true or false to set weather the card is draggable or not */
+    setDraggable(bool){
+        this.scene.input.setDraggable(this.graphic,bool);
     }
 
     /** Used to Store the current coordinates of the card graphic */
