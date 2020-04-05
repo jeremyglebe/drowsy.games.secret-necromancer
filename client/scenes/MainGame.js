@@ -34,24 +34,30 @@ class MainGame extends Phaser.Scene {
         this.mainPlayer = new Player("The Big Z", role, char, Field);
         this.mainPlayer.handSprites = [];
         //create players deck
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
-        this.mainPlayer.hand.push(new Fireball);
-        this.mainPlayer.hand.push(new Lightning);
-        this.mainPlayer.hand.push(new Shield);
+        this.addCard(new Fireball);
+        this.addCard(new Lightning);
+        this.addCard(new Shield);
+        this.addCard(new Fireball);
+        this.addCard(new Lightning);
+        this.addCard(new Shield);
+        this.addCard(new Fireball);
+        this.addCard(new Lightning);
+        this.addCard(new Shield);
+        this.addCard(new Fireball);
+        this.addCard(new Lightning);
+        this.addCard(new Shield);
+        this.addCard(new Fireball);
+        this.addCard(new Lightning);
+        this.addCard(new Shield);
+        this.addCard(new Fireball);
+        this.addCard(new Lightning);
+        this.addCard(new Shield);
+        this.addCard(new Fireball);
+        this.addCard(new Lightning);
+        this.addCard(new Shield);
+        this.addCard(new Fireball);
+        this.addCard(new Lightning);
+        this.addCard(new Shield);
         this.placePlayerSprites();
 
 
@@ -81,11 +87,6 @@ class MainGame extends Phaser.Scene {
     create() { }
 
     placePlayerSprites() {
-        //place all the cards that are in the players hand
-        for (let i = 0; i < this.mainPlayer.hand.length; i++) {
-            this.hand[i] = new CardSprite(200, 650, this.mainPlayer.hand[i], this.mainPlayer.hand.length - i, this);
-            this.hand[i].index = i;
-        }
         //sort them at the bottom are of the screen with 200px padding on both sides of the hand
         this.placeHand();
         //place the character card
@@ -101,7 +102,6 @@ class MainGame extends Phaser.Scene {
 
     initalSetPlayersSprites() {
         let keys = Object.keys(this.otherPlayers);
-        console.log(keys);
         let textStyle = {
             Font: "20px",
             color: "white"
@@ -146,6 +146,57 @@ class MainGame extends Phaser.Scene {
             pos += increment;
         }
     }
+
+    setOtherPlayersCardCount(username, newCount){
+        this.otherPlayers[username].hand = newCount;
+        this.otherPlayers[username].cardCountText.setText(String(newCount));
+    }
+
+    setOtherPlayersHealth(username, health){
+        this.otherPlayers[username].health = health;
+        this.otherPlayers[username].healthText.setText(String(health) + "/100");
+    }
+
+    setMainPlayersHealth(health){
+        this.mainPlayer.health = health;
+        this.mainPlayer.healthText.setText(String(health) + "/100");
+    }
+
+    removeCard(index = 0){
+        //remove the card object
+        this.mainPlayer.hand.splice(index,1);
+        //remove the cards graphical representation
+        let destroyArray = this.hand.splice(index,1);
+        destroyArray[0].destroy();
+        //replace cards as needed
+        this.placeHand();
+    }
+
+    addCard(card){
+        this.mainPlayer.hand.push(card);
+        let tempCard = new CardSprite(200,650,card,0,this);
+        tempCard.specEmitter.on("cardDragEnd", this.checkOverlap, this);
+        this.hand.push(tempCard);
+        this.placeHand();
+    }
+
+    checkOverlap(cardBounds, that){
+        let overlapped = false;
+        //grab the keys of our players to check
+        let keys = Object.keys(this.otherPlayers);
+        //check if the card overlapped with any of the players cards
+        for (let key of keys){
+            if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds())){
+                console.log("You put a card on " +  key);
+                overlapped = true;
+            }
+        }
+        if(!overlapped){
+            that.restorePos();
+        }
+
+    }
+
 }
 
 // exports the class so it may be imported/required elsewhere

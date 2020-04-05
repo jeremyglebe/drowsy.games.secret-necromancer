@@ -11,7 +11,10 @@ class CardSprite {
 
     /** Stores the Card passed to it from the server */
     card;
-    /** Stores the group of sprites used to visually represent the card class on the client-side */
+    /**
+     * Stores the group of sprites used to visually represent the card class on the client-side
+     * @type {Phaser.GameObjects.Sprite}
+     */
     graphic;
     /** Stores the text for the name of the card */
     nameText;
@@ -22,7 +25,7 @@ class CardSprite {
     /** Stores if the card is in the enlarged state or not currently, default is false */
     large = false;
     /** Stores the original x and y of the card from when it was changed last */
-    coords = {x: 0, y: 0}
+    coords = { x: 0, y: 0 }
     /** 
      * stores the internal depth seperate from the sprite allows for changing of all graphic elements
      * at the same time. This is not used in enlarge. default 0.
@@ -31,17 +34,21 @@ class CardSprite {
     /** Keeps track if any card in the game is currently enlarged */
     static anyCardIsEnlarged = false;
     /** Used to track in index of a card in a list, useful for tracking events and poistions of objects in array at the time of events */
+    index;
+    /** Special emitter for custom events */
+    specEmitter;
 
     /** used to create an instance of the card */
-    constructor(x, y, card, depth, scene){
+    constructor(x, y, card, depth, scene) {
         this.card = card;
         this.scene = scene;
         this.depth = depth;
         this.constructgraphic(x, y);
+        this.specEmitter = new Phaser.Events.EventEmitter();
     }
 
     /** used to link the stored Phaser elements to the current scene */
-    link(scene){
+    link(scene) {
         this.scene.add.existing(this.graphic);
         this.scene.add.existing(this.nameText);
         this.scene.add.existing(this.descripText);
@@ -51,10 +58,10 @@ class CardSprite {
      * Used to construct the graphic object or phaser group object upon getting the internal this.card
      * Should only ever be called once upon the construction of this card 
      */
-    constructgraphic(x,y){
+    constructgraphic(x, y) {
         //create the main graphic
-        this.graphic = this.scene.add.sprite(x,y,this.card.name + "_graphic");
-        this.graphic.setOrigin(.5,.5)
+        this.graphic = this.scene.add.sprite(x, y, this.card.name + "_graphic");
+        this.graphic.setOrigin(.5, .5)
         this.graphic.setScale(1.5)
         this.graphic.setInteractive();
         this.scene.input.setDraggable(this.graphic);
@@ -63,21 +70,21 @@ class CardSprite {
         this.graphic.on('pointerdown', this.rightClick, this);
         this.scene.input.on("dragstart", this.storePos, this)
         this.scene.input.on('drag', this.whenDragged, this);
-        this.scene.input.on("dragend", this.stoppedDragging, this)
+        this.scene.input.on("dragend", this.stoppedDragging, this);
 
         //create the name text graphic
-        this.nameText = this.scene.add.text(this.graphic.x - 28, this.graphic.y - 59, this.card.name,{
+        this.nameText = this.scene.add.text(this.graphic.x - 28, this.graphic.y - 59, this.card.name, {
             font: "12px consolas",
             color: "dark black"
         });
-        this.nameText.setOrigin(0,0);
+        this.nameText.setOrigin(0, 0);
 
         //create the name text graphic
-        this.descripText = this.scene.add.text(this.graphic.x - 27, this.graphic.y + 28, this.card.description,{
+        this.descripText = this.scene.add.text(this.graphic.x - 27, this.graphic.y + 28, this.card.description, {
             font: "5px consolas",
             color: "dark black"
         });
-        this.descripText.setOrigin(0,0);
+        this.descripText.setOrigin(0, 0);
 
         //set everythings depth
         this.graphic.depth = this.depth;
@@ -85,59 +92,58 @@ class CardSprite {
         this.descripText.depth = this.depth;
     }
 
+    test(){
+        console.log("works");
+    }
+
     /** Pass in true or false to set weather the card is draggable or not */
-    setDraggable(bool){
-        this.scene.input.setDraggable(this.graphic,bool);
+    setDraggable(bool) {
+        this.scene.input.setDraggable(this.graphic, bool);
     }
 
     /** Used to Store the current coordinates of the card graphic */
-    storePos(){
+    storePos() {
         this.coords.x = this.graphic.x;
         this.coords.y = this.graphic.y;
     }
 
     /** Used to restore the graphic to the location last stored in coords */
-    restorePos(){
+    restorePos() {
         this.graphic.setX(this.coords.x);
         this.graphic.setY(this.coords.y);
+        this.moveText();
     }
 
     /** What to do when the object is being dragged */
-    whenDragged(pointer, gameObject, dragX, dragY){
+    whenDragged(pointer, gameObject, dragX, dragY) {
         gameObject.x = dragX;
         gameObject.y = dragY;
         this.moveText();
     }
 
     /** What to do when the object is released from being dragged */
-    stoppedDragging(){
-        //if it is not on a player, no players so we'll hold to test on that
-        if(false){
-            //do some targeting stuff here, probably activate and whatnot
-        } else {
-            this.restorePos();
-            this.moveText();
-        }
+    stoppedDragging() {
+        this.specEmitter.emit('cardDragEnd',this.graphic.getBounds(),this);
     }
 
     /** Used to move the text when being dragged */
-    moveText = function(){
+    moveText = function () {
         this.nameText.setX(this.graphic.x - 28);
         this.nameText.setY(this.graphic.y - 59);
         this.descripText.setX(this.graphic.x - 27);
         this.descripText.setY(this.graphic.y + 28);
     }
 
-    move(x,y){
+    move(x, y) {
         this.graphic.setX(x);
         this.graphic.setY(y);
         this.moveText();
     }
 
     /** Used to decide weather to shrink or enlarge based on the bool large, when the card is right clicked gameobject */
-    rightClick(pointer){
-        if (pointer.rightButtonDown()){
-            if(this.large == false && CardSprite.anyCardIsEnlarged == false){
+    rightClick(pointer) {
+        if (pointer.rightButtonDown()) {
+            if (this.large == false && CardSprite.anyCardIsEnlarged == false) {
                 this.large = true;
                 CardSprite.anyCardIsEnlarged = true;
                 this.enlarge();
@@ -149,7 +155,7 @@ class CardSprite {
         }
     }
 
-    setDepth(depth){
+    setDepth(depth) {
         this.depth = depth;
         this.graphic.depth = this.depth;
         this.nameText.depth = this.depth;
@@ -157,7 +163,7 @@ class CardSprite {
     }
 
     /** used to center and enlarge the card so effects may be read */
-    enlarge(){
+    enlarge() {
         //store the current x and y
         this.storePos();
 
@@ -181,7 +187,7 @@ class CardSprite {
     }
 
     /** Used to return the card back to normal after enlarge has been used */
-    shrink(){
+    shrink() {
         //move everything back
         this.restorePos();
         this.moveText();
@@ -197,9 +203,11 @@ class CardSprite {
         this.descripText.depth = this.depth;
     }
 
-    /** calls to the global socket to emit to the server to active this card */
-    activate(){
-        socket.emit("activate","Target")
+    /** goes in and desstroy Phaser Sprites for this object */
+    destroy() {
+        this.graphic.destroy();
+        this.nameText.destroy();
+        this.descripText.destroy();
     }
 }
 
