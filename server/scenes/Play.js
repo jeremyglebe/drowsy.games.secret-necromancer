@@ -1,23 +1,59 @@
+
+/**
+ *  Events Reference *
+ * * * * * * * * * * *
+ * 
+ *  Server Emits |
+ * --------------|
+ * 'start game': sent once the server is ready to start the game, clients
+ *               should change scenes at this point.
+ *     Sent to: all clients
+ *     Argument: a "clean" field object containing general player information
+ *               {
+ *                   players: {
+ *                       username: {
+ *                           username: string...,
+ *                           character: Character...,
+ *                           health: number...,
+ *                           hand: number...
+ *                       }
+ *                   }
+ *               }
+ * 
+ * 'your player': sent shortly after the user has started the game
+ *     Sent to: client associated with the player object
+ *     Argument: player object as defined in Player class 
+ * 
+ *  Server Listens For |
+ * --------------------|
+ * 
+ */
+
 const server = require('../SocketServer');
 const Field = require('../game/Field');
 
 // Create a game field to pass to the players
 var field = new Field(Object.values(server.usernames));
-// Tell the clients to start the game with the given field
-server.emit('start game', field.getCliField());
-
-// Wait a moment for clients to transition scenes
-setTimeout(() => {
-    for (let id of Object.keys(server.sockets)) {
-        // Send each client their player object
-        server.emitTo(id, 'your player', field.players[server.usernames[id]]);
-    }
-    setTimeout(() => {
-        // Deal cards to all the players
-        field.dealHands(Object.values(server.usernames));
-    }, 25);
-}, 25);
-
 // As long as we're running the Play scene, keep sending field updates
 // to the console. Server admin should be able to monitor progress.
-setInterval(field.print.bind(field), 5000);
+setInterval(field.print.bind(field), 15000);
+
+// Start the match
+startMatch();
+
+function startMatch() {
+    // Tell the clients to start the game with the given field
+    server.emit('start game', field.getCliField());
+
+    // Wait a moment for clients to transition scenes
+    setTimeout(() => {
+        for (let id of Object.keys(server.sockets)) {
+            // Send each client their player object
+            server.emitTo(id, 'your player', field.players[server.usernames[id]]);
+        }
+        setTimeout(() => {
+            // Deal cards to all the players
+            field.dealHands(Object.values(server.usernames));
+        }, 25);
+    }, 25);
+}

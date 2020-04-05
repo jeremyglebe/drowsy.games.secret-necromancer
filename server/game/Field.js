@@ -1,3 +1,31 @@
+
+/**
+ *  Events Reference *
+ * * * * * * * * * * *
+ * 
+ *  Server Emits |
+ * --------------|
+ * 'your new card': sent when a new card is inserted into a player's hand
+ *     Sent to: the client who is receiving the new card.
+ *     Argument: the card object
+ * 
+ * 'player new card': sent when a new card is inserted into a player's hand
+ *     Sent to: all other clients except the one who receives the new card
+ *     Argument: the username of the client receiving the new card
+ * 
+ * 'turn start': sent by the server when a new player turn is starting
+ *     Sent to: all clients
+ *     Argument: username of the client whose turn is starting
+ * 
+ *  Server Listens For |
+ * --------------------|
+ * 'turn end': sent by a client when they've completed their turn
+ *     Argument: none
+ * 
+ * 'play spell': sent by a client when they wish to play a spell card
+ *     Argument: the name of the spell the client is trying to play
+ */
+
 const tools = require('../Tools');
 const server = require('../SocketServer');
 const Player = require('./Player');
@@ -24,43 +52,55 @@ class Field {
         this.deck = [];
 
         // Create the player objects
-        this.createPlayers(usernames);
+        this.createPlayers(Array.from(usernames));
 
+        // Create listeners for the sockets
+        this.createSocketListeners(Array.from(usernames));
     }
 
+    /**
+     * Creates player objects, assigns roles, and generates a turn queue.
+     * @param usernames 
+     */
     createPlayers(usernames) {
+        // Generate a random turn queue
+        this.turnQueue = Array.from(usernames);
+        tools.shuffle(turnQueue);
+
         // Shuffle the users to pick random roles
         tools.shuffle(usernames);
+
         // Create a grandmaster (if there's at least 4 players)
         if (usernames.length >= 4) {
             let grand = usernames.pop();
             this.players[grand] = new Player(grand, new Grandmaster(), CharDeck.pop(), this);
         }
+
         // Create a necromancer
         let necro = usernames.pop();
         this.players[necro] = new Player(necro, new Necromancer(), CharDeck.pop(), this);
+
         // Create a bunch of sorcerers
         for (let name of usernames) {
             this.players[name] = new Player(name, new Sorcerer(), CharDeck.pop(), this);
         }
     }
 
+    createSocketListeners(usernames) {
+        for (let name of usernames) {
+            // For each username, get the associated id
+            let id = tools.reverseObject(server.usernames)[name];
+            // For each id, add all necessary listeners
+            server.sockets[id].on('play spell', () => { });
+            server.sockets[id].on('turn end', () => { });
+        }
+    }
+
+    /** Deal 5 cards from main deck to each of the players */
     dealHands(usernames) {
         for (let name of usernames) {
-            let hand = this.players[name].hand;
             for (let i = 0; i < 5; i++) {
-                // Draw the card from the deck
-                let card = MainDeck.pop();
-                // Add the card to the hand
-                hand.push(card);
-                // Let the client know about the card
-                server.emitTo(
-                    // Change the id->username map to a username->id map
-                    // Then subscript the username to get the id
-                    tools.reverseObject(server.usernames)[name],
-                    'your new card',
-                    card
-                )
+                this.sendCard(name);
             }
         }
     }
@@ -107,11 +147,51 @@ class Field {
         }
     }
 
+    onTurnEnd(socket) {
+        // Change id->names map to names->id map
+        nameToID = tools.reverseObject(server.usernames);
+        // Get id associated with the current player's username
+        let currentPlayerID = nameToID[this.turnQueue[0]];
+        // Make sure that it is actually the player whose turn it is
+        if (socket.id == currentPlayerID) {
+            // Go to the next turn
+            this.nextTurn();
+            // Let the clients know a new turn has started
+            server.emit('turn start', this.turnQueue[0]);
+        }
+    }
+
+    /**
+     * Sends card to player with the specified username
+     * @param username
+     */
+    sendCard(username) {
+        // Get the player's hand array
+        let hand = this.players[username].hand;
+        // Draw the card from the deck
+        let card = MainDeck.pop();
+        // Add the card to the hand
+        hand.push(card);
+        // Let the client know about the card
+        server.emitTo(
+            // Change the id->username map to a username->id map
+            // Then subscript the username to get the id
+            tools.reverseObject(server.usernames)[username],
+            'your new card',
+            card
+        );
+        // Let everyone else know that the player has gained a card
+        server.emitTo(
+            tools.reverseObject(server.usernames)[username],
+            'player new card', username
+        );
+    }
+
     /**
      * Moves the item at the front of the turnQueue to the back.
      */
     nextTurn() {
-        // Dequeue from the end of the queue
+        // Dequeue the first item in the turn queue
         let first = this.turnQueue.shift();
         // Push first to now be the last element
         this.turnQueue.push(first);

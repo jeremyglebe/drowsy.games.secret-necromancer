@@ -1,3 +1,34 @@
+
+/**
+ *  Events Reference *
+ * * * * * * * * * * *
+ * 
+ *  Server Emits |
+ * --------------|
+ * 'accept connection': sent when server accepts a client that wishes to join
+ *     Sent to: the client wishing to join
+ *     Argument: 'vip' or 'player', informs the player whether they are the VIP
+ * 
+ * 'reject connection': sent when the server declines a connection
+ *     Sent to: the client wishing to join
+ *     Argument: string containing the rejection message for the client
+ * 
+ * 'update players': sent when a new player joins or a player disconnects
+ *     Sent to: all clients
+ *     Argument: object containing usernames of players and VIP
+ *     {
+ *         usernames: list of player usernames,
+ *         vip: string, vip username
+ *     }
+ * 
+ *  Server Listens For |
+ * --------------------|
+ * 'start': sent by the VIP client when the game is ready to start. If a
+ *          non-VIP client sends it, it will be ignored.
+ *     Argument: none
+ * 
+ */
+
 const server = require('../SocketServer');
 
 // Socket ID of the vip player
