@@ -1,8 +1,8 @@
+const client = require('../SocketClient');
 const Phaser = require("phaser");
 const CardSprite = require("../classes/CardSprite");
 
 class MainGame extends Phaser.Scene {
-
 
     constructor() {
         super("MainGame");
@@ -13,26 +13,30 @@ class MainGame extends Phaser.Scene {
 
     init(field) {
 
-        /** CALLBACK FOR PLAYER OBJ SENT */
-        //create role to pass in
-        let role = {};
-        //create players character
-        let char = {}
-        //create test player to pass in
-        this.mainPlayer = {};
-        this.mainPlayer.handSprites = [];
-        this.placePlayerSprites();
-
-
-        /** PASSED IN PLAYERS, BUILD BASED ON FIELD
-         * keys are USERNAMES, values are PLAYERS
+        /**
+         * Map of usernames to Player instances. Duplicate of the players
+         * object on field, except we'll remove the client's personal Player.
+         * Since we don't know who that is yet, we'll wait for the event.
          */
         this.otherPlayers = field.players;
 
-        this.initalSetPlayersSprites();
     }
 
-    create() { }
+    create() {
+
+        // When the client receives their player info, start building the screen
+        client.on('your player', (player) => {
+            console.log(player);
+            // Store the player
+            this.mainPlayer = player;
+            this.mainPlayer.handSprites = [];
+            // Remove this client's player from the other players list
+            delete this.otherPlayers[this.mainPlayer.username];
+            this.placePlayerSprites();
+            this.initalSetPlayersSprites();
+        });
+
+    }
 
     placePlayerSprites() {
         //sort them at the bottom are of the screen with 200px padding on both sides of the hand
