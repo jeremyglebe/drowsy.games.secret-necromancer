@@ -93,6 +93,7 @@ class MainGame extends Phaser.Scene {
         this.otherPlayers[keys[0]].healthText = this.add.text(100, 15, String(this.otherPlayers[keys[0]].health) + "/100", textStyle);
         this.otherPlayers[keys[0]].cardCountIcons = this.add.sprite(120, 70, "backofspell_graphic").setScale(.7);
         this.otherPlayers[keys[0]].cardCountText = this.add.text(150, 60, String(this.otherPlayers[keys[0]].hand), textStyle);
+        this.otherPlayers[keys[0]].usernameText = this.add.text(100,10,this.otherPlayers[keys[0]].username,textStyle);
         //Second Other Player
         this.otherPlayers[keys[1]].charSprite = new CardSprite(1230, 70, this.otherPlayers[keys[1]].character, 0, this);
         this.otherPlayers[keys[1]].charSprite.setDraggable(false,true);
@@ -100,6 +101,7 @@ class MainGame extends Phaser.Scene {
         this.otherPlayers[keys[1]].healthText = this.add.text(1110, 15, String(this.otherPlayers[keys[1]].health) + "/100", textStyle);
         this.otherPlayers[keys[1]].cardCountIcons = this.add.sprite(1160, 70, "backofspell_graphic").setScale(.7);
         this.otherPlayers[keys[1]].cardCountText = this.add.text(1120, 60, String(this.otherPlayers[keys[1]].hand), textStyle);
+        this.otherPlayers[keys[1]].usernameText = this.add.text(1110,10,this.otherPlayers[keys[1]].username,textStyle);
         //Third Other Player if there is one
         if (keys.length >= 3) {
             this.otherPlayers[keys[2]].charSprite = new CardSprite(50, 250, this.otherPlayers[keys[2]].character, 0, this);
@@ -108,6 +110,7 @@ class MainGame extends Phaser.Scene {
             this.otherPlayers[keys[2]].healthText = this.add.text(100, 195, String(this.otherPlayers[keys[2]].health) + "/100", textStyle);
             this.otherPlayers[keys[2]].cardCountIcons = this.add.sprite(120, 250, "backofspell_graphic").setScale(.7);
             this.otherPlayers[keys[2]].cardCountText = this.add.text(150, 240, String(this.otherPlayers[keys[2]].hand), textStyle);
+            this.otherPlayers[keys[2]].usernameText = this.add.text(100,175,this.otherPlayers[keys[2]].username,textStyle);
         }
         //Fourth Other Player if there is one
         if (keys.length == 4) {
@@ -117,6 +120,7 @@ class MainGame extends Phaser.Scene {
             this.otherPlayers[keys[3]].healthText = this.add.text(1110, 195, String(this.otherPlayers[keys[3]].health) + "/100", textStyle);
             this.otherPlayers[keys[3]].cardCountIcons = this.add.sprite(1160, 250, "backofspell_graphic").setScale(.7);
             this.otherPlayers[keys[3]].cardCountText = this.add.text(1120, 240, String(this.otherPlayers[keys[3]].hand), textStyle);
+            this.otherPlayers[keys[3]].usernameText = this.add.text(1110,175,this.otherPlayers[keys[3]].username,textStyle);
         }
     }
 
@@ -194,7 +198,7 @@ class MainGame extends Phaser.Scene {
         this.turnEndButton.on('pointerdown', this.turnEnd, this);
     }
 
-    turnChange(username){
+    turnChange(username){ 
         //check if it is this client's turn
         if(username == this.mainPlayer.username){
             this.isYourTurn = true;
