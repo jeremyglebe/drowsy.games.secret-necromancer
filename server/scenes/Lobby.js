@@ -138,5 +138,5 @@ function testForRejection(socket) {
 }
 
 function nextScene() {
-    require('./Play');
+    require('./play');
 }

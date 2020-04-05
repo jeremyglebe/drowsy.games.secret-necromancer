@@ -1,7 +1,7 @@
 //imports
 const Phaser = require("phaser");
 const Boot = require("./scenes/Boot");
-const CardTest = require("./scenes/Cardtest");
+// const CardTest = require("./scenes/Cardtest");
 const Connect = require('./scenes/Connect');
 const Lobby = require('./scenes/Lobby');
 const MainGame = require("./scenes/Maingame");
@@ -32,7 +32,7 @@ const gameConfig = {
     scene: [
         Boot,
         Connect,
-        CardTest,
+        // CardTest,
         Lobby,
         MainGame
     ]

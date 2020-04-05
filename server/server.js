@@ -33,5 +33,5 @@ function initializeServer() {
 }
 
 function nextScene() {
-    require('./scenes/Lobby');
+    require('./scenes/lobby');
 }

@@ -1,3 +1,4 @@
+const tools = require('../Tools');
 const Player = require('./Player');
 
 class Field {
@@ -12,25 +13,25 @@ class Field {
         /** Turn order queue */
         this.turnQueue = [];
         /** Map of usernames to Player objects */
-        this.players = [];
+        this.players = {};
         /** List of cards in the deck */
         this.deck = [];
         /** List of cards in the dark arts deck */
         this.dadeck = [];
 
         // Shuffle the users to pick random roles
-        shuffle(usernames);
+        tools.shuffle(usernames);
         // Create a grandmaster (if there's at least 4 players)
         if (usernames.length >= 4) {
             let grand = usernames.pop();
-            this.players[grand] = new Player(grand, 'grandmaster', this);
+            this.players[grand] = new Player(grand, 'grandmaster', null, this);
         }
         // Create a necromancer
         let necro = usernames.pop();
-        this.players[necro] = new Player(necro, 'necromancer', this);
+        this.players[necro] = new Player(necro, 'necromancer', null, this);
         // Create a bunch of sorcerers
         for (let name of usernames) {
-            this.players[name] = new Player(name, 'sorcerer', this);
+            this.players[name] = new Player(name, 'sorcerer', null, this);
         }
     }
 
@@ -42,9 +43,10 @@ class Field {
     getCliField() {
         // Create the client's field object
         let cliField = {
-            players: []
+            players: {}
         }
-        for (let ply of this.players) {
+        for (let plyKey of Object.keys(this.players)) {
+            let ply = this.players[plyKey];
             // Create an empty object to copy player data into
             let cliPly = {};
             // Copy every key except role into cliPly
@@ -54,9 +56,25 @@ class Field {
                 }
             }
             // Add cliPly to new fields list of players
-            cliField.players.push(cliPly);
+            cliField.players[plyKey] = cliPly;
         }
         return cliField;
+    }
+
+    /**
+     * Prints status and info about the field
+     */
+    print() {
+        console.log(this.players);
+        console.log(""
+            + "********************************\n"
+            + "********* FIELD STATUS *********\n"
+            + "********************************\n");
+        for (let ply of Object.values(this.players)) {
+            console.log(ply.username);
+            console.log("HP:", ply.health);
+            console.log("Hand:", ply.hand, '\n');
+        }
     }
 
     /**
@@ -67,17 +85,6 @@ class Field {
         let first = this.turnQueue.shift();
         // Push first to now be the last element
         this.turnQueue.push(first);
-    }
-}
-
-/**
- * Credit for shuffle function to:
- * https://javascript.info/task/shuffle
- */
-function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        let j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
     }
 }
 
