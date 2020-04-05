@@ -54,12 +54,14 @@ class MainGame extends Phaser.Scene {
             delete this.otherPlayers[this.mainPlayer.username];
             this.placePlayerSprites();
             this.initalSetPlayersSprites();
+            this.turnChange("greg");
         });
 
         // When the server gives you a new card, add it to the local hand
         client.on('your new card', (card) => {
             this.addCard(card);
         });
+
     }
 
     placePlayerSprites() {
@@ -72,7 +74,8 @@ class MainGame extends Phaser.Scene {
         this.mainPlayer.RoleSprite = new CardSprite(50, 500, this.mainPlayer.role, 0, this);
         this.mainPlayer.RoleSprite.setDraggable(false);
         //place the health text
-        this.mainPlayer.healthText = this.add.text(1140, 650, String(this.mainPlayer.health) + "/100", { color: "white" });
+        this.mainPlayer.healthText = this.add.text(1140, 620, String(this.mainPlayer.health) + "/100", { color: "white" });
+        this.mainPlayer.healthText.setOrigin(.5,.5);
         this.mainPlayer.healthText.setFontSize(30);
     }
 
@@ -85,20 +88,23 @@ class MainGame extends Phaser.Scene {
         //We assume atleast 3 players since that is the server set minimum, we place them first, then add more if there is more
         //First Other Player
         this.otherPlayers[keys[0]].charSprite = new CardSprite(50, 70, this.otherPlayers[keys[0]].character, 0, this);
-        this.otherPlayers[keys[0]].charSprite.setDraggable(false);
+        this.otherPlayers[keys[0]].charSprite.setDraggable(false,true);
+        this.otherPlayers[keys[0]].charSprite.setDefaultPos();
         this.otherPlayers[keys[0]].healthText = this.add.text(100, 15, String(this.otherPlayers[keys[0]].health) + "/100", textStyle);
         this.otherPlayers[keys[0]].cardCountIcons = this.add.sprite(120, 70, "backofspell_graphic").setScale(.7);
         this.otherPlayers[keys[0]].cardCountText = this.add.text(150, 60, String(this.otherPlayers[keys[0]].hand), textStyle);
         //Second Other Player
         this.otherPlayers[keys[1]].charSprite = new CardSprite(1230, 70, this.otherPlayers[keys[1]].character, 0, this);
-        this.otherPlayers[keys[1]].charSprite.setDraggable(false);
+        this.otherPlayers[keys[1]].charSprite.setDraggable(false,true);
+        this.otherPlayers[keys[1]].charSprite.setDefaultPos();
         this.otherPlayers[keys[1]].healthText = this.add.text(1110, 15, String(this.otherPlayers[keys[1]].health) + "/100", textStyle);
         this.otherPlayers[keys[1]].cardCountIcons = this.add.sprite(1160, 70, "backofspell_graphic").setScale(.7);
         this.otherPlayers[keys[1]].cardCountText = this.add.text(1120, 60, String(this.otherPlayers[keys[1]].hand), textStyle);
         //Third Other Player if there is one
         if (keys.length >= 3) {
             this.otherPlayers[keys[2]].charSprite = new CardSprite(50, 250, this.otherPlayers[keys[2]].character, 0, this);
-            this.otherPlayers[keys[2]].charSprite.setDraggable(false);
+            this.otherPlayers[keys[2]].charSprite.setDraggable(false, true);
+            this.otherPlayers[keys[2]].charSprite.setDefaultPos();
             this.otherPlayers[keys[2]].healthText = this.add.text(100, 195, String(this.otherPlayers[keys[2]].health) + "/100", textStyle);
             this.otherPlayers[keys[2]].cardCountIcons = this.add.sprite(120, 250, "backofspell_graphic").setScale(.7);
             this.otherPlayers[keys[2]].cardCountText = this.add.text(150, 240, String(this.otherPlayers[keys[2]].hand), textStyle);
@@ -106,7 +112,8 @@ class MainGame extends Phaser.Scene {
         //Fourth Other Player if there is one
         if (keys.length == 4) {
             this.otherPlayers[keys[3]].charSprite = new CardSprite(1230, 250, this.otherPlayers[keys[3]].character, 0, this);
-            this.otherPlayers[keys[3]].charSprite.setDraggable(false);
+            this.otherPlayers[keys[3]].charSprite.setDraggable(false, true);
+            this.otherPlayers[keys[3]].charSprite.setDefaultPos();
             this.otherPlayers[keys[3]].healthText = this.add.text(1110, 195, String(this.otherPlayers[keys[3]].health) + "/100", textStyle);
             this.otherPlayers[keys[3]].cardCountIcons = this.add.sprite(1160, 250, "backofspell_graphic").setScale(.7);
             this.otherPlayers[keys[3]].cardCountText = this.add.text(1120, 240, String(this.otherPlayers[keys[3]].hand), textStyle);
@@ -119,6 +126,8 @@ class MainGame extends Phaser.Scene {
         for (let i = 0; i < this.mainPlayer.hand.length; i++) {
             this.hand[i].move(pos, 650);
             this.hand[i].setDepth(this.mainPlayer.hand.length - i);
+            this.hand[i].index = i;
+            this.hand[i].setDefaultPos();
             pos += increment;
         }
     }
@@ -162,14 +171,27 @@ class MainGame extends Phaser.Scene {
         let keys = Object.keys(this.otherPlayers);
         //check if the card overlapped with any of the players cards
         for (let key of keys) {
+            console.log(key, Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds()))
             if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds()) && this.isYourTurn) {
                 console.log("You put a card on " + key);
                 overlapped = true;
             }
         }
         if (!overlapped) {
-            that.restorePos();
+            that.restoreDefaultPos();
         }
+    }
+
+    createTurnEndButton(){
+        //add end turn button
+        this.turnEndButtonText = this.add.text(1140, 670, "End Turn!");
+        this.turnEndButtonText.setOrigin(0.5)
+        this.turnEndButtonText.setFontSize(30);
+        this.turnEndButton = this.add.rectangle(1140, 670, 240, 50, 0x88FF88, 0.5);
+        this.turnEndButton.setOrigin(0.5);
+        this.turnEndButton.setInteractive();
+        // When the box is clicked, open the editor
+        this.turnEndButton.on('pointerdown', this.turnEnd, this);
     }
 
     turnChange(username){
@@ -180,6 +202,19 @@ class MainGame extends Phaser.Scene {
         } else {
             this.quickTextDisplay("It's " + username + "'s turn!");
         }
+        //make the button appear
+        this.turnEndButton.setScale(1);
+        this.turnEndButtonText.setScale(1);
+    }
+
+    turnEnd(){
+        //Change it to not be your turn
+        this.isYourTurn = false;
+        //make the turnEndButton disappear
+        this.turnEndButton.setScale(0);
+        this.turnEndButtonText.setScale(0);
+        //send to the server that you've ended your turn
+        client.emit("turn end");
     }
 
     quickTextDisplay(string){
@@ -230,10 +265,6 @@ class MainGame extends Phaser.Scene {
             }
         }
     }
-
-
-
-
 
 }
 
