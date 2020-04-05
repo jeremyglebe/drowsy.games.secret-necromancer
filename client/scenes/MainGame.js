@@ -54,7 +54,7 @@ class MainGame extends Phaser.Scene {
             delete this.otherPlayers[this.mainPlayer.username];
             this.placePlayerSprites();
             this.initalSetPlayersSprites();
-            this.turnChange("greg");
+            createTurnEndButton();
         });
 
         // When the server gives you a new card, add it to the local hand
