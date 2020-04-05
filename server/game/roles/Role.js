@@ -2,13 +2,10 @@
 
 class Role {
 
-    /** Used both as the name of the card and as the card graghic key for the client */
-    name;
-    /** Holds a string Description of the roles objective and job */
-    description;
-
     constructor(name,description){
+        /** Used both as the name of the card and as the card graghic key for the client */
         this.name = name;
+        /** Holds a string Description of the roles objective and job */
         this.description = description;
     }
 }
