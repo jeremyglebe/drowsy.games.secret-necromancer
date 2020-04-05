@@ -46,7 +46,6 @@ class MainGame extends Phaser.Scene {
         let bg = this.add.sprite(0, 0, "gamebackground_graphic").setOrigin(0, 0);
         // When the client receives their player info, start building the screen
         client.on('your player', (player) => {
-            console.log(player);
             // Store the player
             this.mainPlayer = player;
             this.mainPlayer.handSprites = [];
@@ -157,11 +156,15 @@ class MainGame extends Phaser.Scene {
     }
 
     removeCard(index = 0) {
+        console.log(index);
         //remove the card object
         this.mainPlayer.hand.splice(index, 1);
         //remove the cards graphical representation
         let destroyArray = this.hand.splice(index, 1);
+        console.log(destroyArray[0])
         destroyArray[0].destroy();
+        delete destroyArray[0];
+        console.log(destroyArray[0])
         //replace cards as needed
         this.placeHand();
     }
@@ -180,15 +183,16 @@ class MainGame extends Phaser.Scene {
         let keys = Object.keys(this.otherPlayers);
         //check if the card overlapped with any of the players cards
         for (let key of keys) {
-            console.log(key, Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds()))
             if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds()) && this.isYourTurn) {
-                console.log("You put a card on " + key);
                 overlapped = true;
+                console.log(that);
                 client.emit('play spell', {
                     index: that.index,
                     name: that.card.name,
                     targets: key
                 });
+                //remove the card client side
+                this.removeCard(that.index);
             }
         }
         if (!overlapped) {
