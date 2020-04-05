@@ -231,6 +231,8 @@ class Field {
         this.turnQueue.push(first);
         // Let the clients know a new turn has started
         server.emit('turn start', this.turnQueue[0]);
+        // The person whose turn it now is draws a card
+        this.sendCard(this.turnQueue[0]);
     }
 }
 
