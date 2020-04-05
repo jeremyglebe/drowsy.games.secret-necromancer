@@ -16,8 +16,6 @@ class Field {
         this.players = {};
         /** List of cards in the deck */
         this.deck = [];
-        /** List of cards in the dark arts deck */
-        this.dadeck = [];
 
         // Shuffle the users to pick random roles
         tools.shuffle(usernames);
@@ -51,9 +49,10 @@ class Field {
             let cliPly = {};
             // Copy every key except role into cliPly
             for (let key in ply) {
-                if (key != 'role' && key != 'hand' && key != 'dahand') {
+                if (key != 'role' && key != 'hand') {
                     cliPly[key] = ply[key];
                 }
+                cliPly['hand'] = ply['hand'].length;
             }
             // Add cliPly to new fields list of players
             cliField.players[plyKey] = cliPly;
