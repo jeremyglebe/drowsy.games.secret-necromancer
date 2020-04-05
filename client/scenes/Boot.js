@@ -6,12 +6,12 @@ const Phaser = require("phaser");
  * just waiting on access to phaser
  */
 
-class boot extends Phaser.Scene {
+class Boot extends Phaser.Scene {
 
     fireball;
 
     constructor() {
-        super("boot")
+        super("Boot")
     }
 
     preload() {
@@ -31,4 +31,4 @@ class boot extends Phaser.Scene {
 }
 
 // exports the class so it may be imported/required elsewhere
-module.exports = boot;
+module.exports = Boot;
