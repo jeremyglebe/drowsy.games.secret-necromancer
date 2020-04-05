@@ -122,6 +122,12 @@ class CardSprite {
         this.descripText.setY(this.graphic.y + 28);
     }
 
+    move(x,y){
+        this.graphic.setX(x);
+        this.graphic.setY(y);
+        this.moveText();
+    }
+
     /** Used to decide weather to shrink or enlarge based on the bool large, when the card is right clicked gameobject */
     rightClick(pointer){
         if (pointer.rightButtonDown()){
@@ -135,6 +141,13 @@ class CardSprite {
                 this.shrink();
             }
         }
+    }
+
+    setDepth(depth){
+        this.depth = depth;
+        this.graphic.depth = this.depth;
+        this.nameText.depth = this.depth;
+        this.descripText.depth = this.depth;
     }
 
     /** used to center and enlarge the card so effects may be read */

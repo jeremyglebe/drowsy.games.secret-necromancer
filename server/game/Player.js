@@ -6,7 +6,7 @@ class Player {
      * @param {string} role 
      * @param {any} field
      */
-    constructor(username, role, field) {
+    constructor(username, role, character, field) {
         /**
          * Username of the player. Field stores players in an object keyed by
          * username, so this is mostly for rare instances of reverse-lookup.
@@ -20,6 +20,8 @@ class Player {
          * Necromancer is a complete mystery.
          */
         this.role = role;
+        /** Used to store what character the player is */
+        this.character = character;
         /** A number between 1 & 100 representing the health of the player */
         this.health = 100;
         /**
