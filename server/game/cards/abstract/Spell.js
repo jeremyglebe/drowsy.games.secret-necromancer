@@ -18,7 +18,7 @@ class Spell extends Card {
     }
 
     /** Activates the cards effect */
-    activate(field, targets) { };
+    activate(field, caster, targets) { };
 
 }
 

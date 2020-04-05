@@ -24,6 +24,13 @@
  *     Sent to: client associated with the player object
  *     Argument: player object as defined in Player class 
  * 
+ * 'sync': sent periodically for syncing
+ *     Sent to: each client, but individually 1 at a time
+ *     Argument: {
+ *                   field: client safe field object,
+ *                   player: the client's player object
+ *               }
+ * 
  *  Server Listens For |
  * --------------------|
  * 

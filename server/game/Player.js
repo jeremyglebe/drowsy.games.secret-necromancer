@@ -33,6 +33,17 @@ class Player {
         this.focus = 0;
         /** List of cards in the player's hand. */
         this.hand = [];
+        /** List of item cards the player has equipped */
+        this.items = [];
+    }
+
+    calcStats() {
+        this.defense = 0;
+        this.evasion = 0;
+        this.focus = 0;
+        for (let item in this.items) {
+            item.activate(this);
+        }
     }
 
 }

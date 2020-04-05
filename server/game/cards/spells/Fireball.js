@@ -6,16 +6,18 @@ class Fireball extends Spell {
         super("Fireball", ""
             + "Explosive! Inflict\n"
             + "10 Damage on all\n"
-            + "other players.", "player");
+            + "other players.", "others");
     }
 
-    activate(field, targets) {
-        for (let target of targets) {
-            let player = field.players[target];
-            player.calcStats();
-            let damage = 10;
-            damage -= Math.ceil(damage * player.defense);
-            player.health -= damage;
+    activate(field, caster, targets) {
+        let players = field.players;
+        for (let [key, player] of Object.entries(players)) {
+            if (key != caster) {
+                player.calcStats();
+                let damage = 10;
+                damage -= Math.ceil(damage * player.defense);
+                player.health -= damage;
+            }
         }
     }
 }

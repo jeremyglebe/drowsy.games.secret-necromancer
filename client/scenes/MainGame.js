@@ -180,6 +180,11 @@ class MainGame extends Phaser.Scene {
             if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds()) && this.isYourTurn) {
                 console.log("You put a card on " + key);
                 overlapped = true;
+                client.emit('play spell', {
+                    index: that.index,
+                    name: that.card.name,
+                    targets: key
+                });
             }
         }
         if (!overlapped) {
