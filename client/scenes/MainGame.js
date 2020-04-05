@@ -23,7 +23,8 @@ class MainGame extends Phaser.Scene {
     }
 
     create() {
-
+        //create the background
+        let bg = this.add.sprite(0,0,"gamebackground_graphic").setOrigin(0,0);
         // When the client receives their player info, start building the screen
         client.on('your player', (player) => {
             console.log(player);

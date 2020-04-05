@@ -16,6 +16,8 @@ class Lobby extends Phaser.Scene {
     }
 
     create() {
+        //create background
+        let bg = this.add.sprite(0,0,"lobby_graphic").setOrigin(0,0);
         // Create player list
         this.tags.push(this.add.text(640, 80, "Sorcerers Gathered")
             .setOrigin(0.5).setFontSize(36));
