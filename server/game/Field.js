@@ -23,7 +23,12 @@
  *     Argument: none
  * 
  * 'play spell': sent by a client when they wish to play a spell card
- *     Argument: the name of the spell the client is trying to play
+ *     Argument: object containing the index, card name, and target
+ *               {
+ *                   index: ...,
+ *                   name: ...,
+ *                   targets: ...,
+ *               }
  */
 
 const tools = require('../Tools');
@@ -48,8 +53,8 @@ class Field {
         this.turnQueue = [];
         /** Map of usernames to Player objects */
         this.players = {};
-        /** List of cards in the deck */
-        this.deck = [];
+        /** List of cards in the discard pile */
+        this.discard = [];
 
         // Create the player objects
         this.createPlayers(Array.from(usernames));
@@ -144,6 +149,33 @@ class Field {
             console.log(ply.username);
             console.log("HP:", ply.health);
             console.dir(ply.hand, { depth: 0 });
+        }
+    }
+
+    onPlaySpell(socket, spellInfo) {
+        // Extract spell information
+        let index = spellInfo.index;
+        let name = spellInfo.name;
+        let targets = spellInfo.targets;
+        // Change id->names map to names->id map
+        nameToID = tools.reverseObject(server.usernames);
+        // Get id associated with the current player's username
+        let currentPlayerID = nameToID[this.turnQueue[0]];
+        // Make sure that it is actually the player whose turn it is
+        if (socket.id == currentPlayerID) {
+            // Get a reference to the player
+            let player = this.players[this.turnQueue[0]];
+            // Confirm the card names match at the given index
+            if (name == player.hand[index].name) {
+                // Store the card
+                let card = player.hand[index];
+                // Activate the spell
+                card.activate(this, targets);
+                // Remove the card from the player's hand
+                player.hand.splice(index, 1);
+                // Add card to the discard pile
+                this.discard.push(card);
+            }
         }
     }
 
