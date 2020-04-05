@@ -19,7 +19,7 @@ class boot extends Phaser.Scene {
     init(){}
 
     create(){
-        this.scene.start("Connect");
+        this.scene.start("Maingame");
     }
  }
 

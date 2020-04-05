@@ -18,9 +18,12 @@ class Maingame extends Phaser.Scene {
     }
 
     init(){
-
+        //creat test field
+        feild = new Field(["greg","kenny", "The Big Z","Jeremy"])
         //create test player to pass in
-        mainPlayer = new Player();
+        mainPlayer = new Player("The Big Z", "Grandmaster",Field);
+        mainPlayer.hand.push(new Fireball);
+        console.log(mainPlayer.hand);
 
     }
 
