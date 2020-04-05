@@ -11,7 +11,7 @@ class boot extends Phaser.Scene {
     fireball;
 
     constructor(){
-        super("Boot")
+        super("boot")
     }
 
     preload(){
@@ -21,16 +21,12 @@ class boot extends Phaser.Scene {
         this.load.image("Grandmaster_graphic", "../assets/images/cards/grandmaster_card.png");
         this.load.image("Necromancer_graphic", "../assets/images/cards/necromancer_card.png");
         this.load.image("Wizard_graphic", "../assets/images/cards/wizard_card.png");
-        this.load.image("Tiny_graphic", "../assets/images/cards/tiny_card.png");
-        this.load.image("Bacon_graphic", "../assets/images/cards/bacon_card.png");
-        this.load.image("Lilium_graphic", "../assets/images/cards/lilium_card.png");
-        this.load.image("backofspell_graphic", "../assets/images/cards/light_card_back.png");
     }
 
     init(){}
 
     create(){
-        this.scene.start("Maingame");
+        this.scene.start("cardtest");
     }
  }
 
