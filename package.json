@@ -7,7 +7,10 @@
     "start": "electron client",
     "test": "electron client dev",
     "server": "node server/server.js",
-    "live-server": "nodemon server/server.js"
+    "live-server": "nodemon server/server.js",
+    "build:client": "electron-builder ./client --config ./electron-builder-config.json",
+    "build:server": "pkg server/server.js --targets node12-linux-x64,node12-macos-x64,node12-win-x64 --out-path ./dist/server",
+    "build": "npm run build:server & npm run build:client"
   },
   "repository": {
     "type": "git",
