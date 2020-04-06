@@ -71,6 +71,7 @@ class MainGame extends Phaser.Scene {
 
         client.on('spell played', this.onSpellPlayed.bind(this));
         client.on('sync', this.checkSync.bind(this));
+        client.on('game over', this.gameOver.bind(this));
 
     }
 
@@ -328,16 +329,16 @@ class MainGame extends Phaser.Scene {
         this.quickTextDisplayTween.play();
     }
 
-    gameOver(username){
-        if (this.mainPlayer.username == username){
-            this.scene.start("Endingscreen",{status: "won", username: username});
+    gameOver(winners) {
+        if (this.mainPlayer.username in winners) {
+            this.scene.start("Endingscreen", { status: "won", winners: winners });
         } else {
-            this.scene.start("Endingscreen",{status: "lost", username: username});
+            this.scene.start("Endingscreen", { status: "lost", winners: winners });
         }
     }
 
-    userDie(username){
-        if (this.mainPlayer.username == username){
+    userDie(username) {
+        if (this.mainPlayer.username == username) {
             this.mainPlayer.healthText.setText("You Died");
         } else {
             this.quickTextDisplay("Player " + username + " Died!");

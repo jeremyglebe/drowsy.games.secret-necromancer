@@ -4,9 +4,8 @@ class Grandmaster extends Role {
 
     constructor() {
         super("Grandmaster", ""
-            + "You must takeout both\n"
-            + "the wizards and the\n"
-            + "necromancer");
+            + "You must destroy the\n"
+            + "Necromancer!");
     }
 }
 

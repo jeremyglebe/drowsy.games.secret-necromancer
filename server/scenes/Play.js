@@ -78,4 +78,29 @@ setInterval(() => {
         });
     }
 
+    // Check for victory conditions
+    let necromancer = null;
+    let grandmaster = null;
+    for (let [name, player] of Object.entries(field.players)) {
+        if (player.role.name == "Necromancer") {
+            necromancer = name;
+        }
+        if (player.role.name == "Grandmaster") {
+            grandmaster = name;
+        }
+    }
+    if (field.players[necromancer].health <= 0) {
+        winners = [];
+        for (let name of Object.keys(field.players)) {
+            if (name != necromancer) {
+                winners.push(name);
+            }
+        }
+        server.emit('game over', winners);
+    } else if (field.players[grandmaster].health <= 0) {
+        winners = [];
+        winners.push(necromancer);
+        server.emit('game over', winners);
+    }
+
 }, 1000);

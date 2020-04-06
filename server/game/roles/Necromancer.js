@@ -3,9 +3,8 @@ const Role = require("./Role");
 class Necromancer extends Role {
     constructor() {
         super("Necromancer", ""
-            + "You must takeout all\n"
-            + "the Wizards first and\n"
-            + "then the Grandmaster"
+            + "You must kill the\n"
+            + "Grandmaster...\n"
         );
     }
 }
