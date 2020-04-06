@@ -3,7 +3,7 @@ const Necromancy = require('../abstract/Necromancy');
 class ForgetfulPotion extends Necromancy {
 
     constructor() {
-        super("Potion of Forgetfulness", ""
+        super("Witch Brew", ""
             + "Player loses a\n"
             + "random card\n", 'player');
     }
@@ -11,7 +11,7 @@ class ForgetfulPotion extends Necromancy {
     activate(field) {
         let hand = field.players[this.target].hand;
         let card = hand.splice(0, 1);
-        field.discard.push(card);
+        field.discard.push(card[0]);
     }
 
 }

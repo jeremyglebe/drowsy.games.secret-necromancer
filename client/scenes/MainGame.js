@@ -70,6 +70,7 @@ class MainGame extends Phaser.Scene {
         });
 
         client.on('spell played', this.onSpellPlayed.bind(this));
+        client.on('sync', this.checkSync.bind(this));
 
     }
 
@@ -180,20 +181,20 @@ class MainGame extends Phaser.Scene {
     addCard(card) {
         this.mainPlayer.hand.push(card);
         let tempCard = new CardSprite(200, 650, card, 0, this);
-        tempCard.specEmitter.on("cardDragEnd",  this.checkOverlapTarget, this);
+        tempCard.specEmitter.on("cardDragEnd", this.checkOverlapTarget, this);
         this.hand.push(tempCard);
         this.placeHand();
     }
 
-    checkOverlapTarget(cardBounds, that){
+    checkOverlapTarget(cardBounds, that) {
         let target = that.card.targetType;
         console.log(that);
         console.log(target);
-        if (target == "player"){
+        if (target == "player") {
             this.checkOtherPlayersOverlap(cardBounds, that);
-        } else if (target == "self"){
+        } else if (target == "self") {
             this.checkMainplayerOverlap(cardBounds, that);
-        } else if (target == "others" || target == "all"){
+        } else if (target == "others" || target == "all") {
             this.checkUpperBoundsOverlap(that);
         } else {
             that.restoreDefaultPos();
@@ -209,20 +210,20 @@ class MainGame extends Phaser.Scene {
             if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds()) && this.isYourTurn) {
                 overlapped = true;
                 //determine if it is a spell or an item
-                if(that.card.type == "spell"){
+                if (that.card.type == "spell") {
                     client.emit('play spell', {
                         index: that.index,
                         name: that.card.name,
                         targets: key
                     });
-                } else if (that.card.type == "item"){
+                } else if (that.card.type == "item") {
                     client.emit('play spell', {
                         index: that.index,
                         name: that.card.name,
                         targets: key
                     });
-                } else if (that.card.type == "necromancy"){
-                    if (this.necroCardPlayed == false){
+                } else if (that.card.type == "necromancy") {
+                    if (this.necroCardPlayed == false) {
                         this.necroCardPlayed = true;
                         client.emit('play spell', {
                             index: that.index,
@@ -233,7 +234,7 @@ class MainGame extends Phaser.Scene {
                         overlapped = false;
                     }
                 }
-                if(overlapped){
+                if (overlapped) {
                     this.removeCard(that.index);
                 }
             }
@@ -243,10 +244,10 @@ class MainGame extends Phaser.Scene {
         }
     }
 
-    checkMainplayerOverlap(cardBounds, that){
+    checkMainplayerOverlap(cardBounds, that) {
         let overlapped = false;
         //check if the card overlapped with any of the players cards
-        if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.mainPlayer.characterSprite.getBounds()) && this.isYourTurn){
+        if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.mainPlayer.characterSprite.getBounds()) && this.isYourTurn) {
             overlapped = true;
             client.emit('play spell', {
                 index: that.index,
@@ -260,11 +261,11 @@ class MainGame extends Phaser.Scene {
         }
     }
 
-    checkUpperBoundsOverlap(that){
+    checkUpperBoundsOverlap(that) {
         let overlapped = false;
         //check if the card overlapped with any of the players cards
         console.log(that);
-        if (that.graphic.y > 250){
+        if (that.graphic.y > 250) {
             overlapped = true;
             client.emit('play spell', {
                 index: that.index,
@@ -329,25 +330,33 @@ class MainGame extends Phaser.Scene {
 
         //check sync on client's main player
         //check health
-        if (checkMainPlayer.health != this.mainPlayer.health) { setMainPlayersHealth(checkMainPlayer.health); }
+        if (checkMainPlayer.health != this.mainPlayer.health) { this.setMainPlayersHealth(checkMainPlayer.health); }
         //check hand size
         if (checkMainPlayer.hand.length != this.mainPlayer.hand.length) { mainPlayerHandBad = true; }
         //if hand size is good, check individual cards
         if (!mainPlayerHandBad) {
             for (let i = 0; i < checkMainPlayer.hand.length; i++) {
-                if (checkMainPlayer.hand[i] != this.mainPlayer.hand[i]) {
+                if (checkMainPlayer.hand[i].name != this.mainPlayer.hand[i].name) {
                     mainPlayerHandBad = true;
                 }
             }
         }
         //if it's not synced, remove the hand and manually resync it
         if (mainPlayerHandBad) {
+            console.log("hands not synced!", this.mainPlayer.hand.length, checkMainPlayer.hand.length);
             for (let i = 0; i < this.mainPlayer.hand.length; i++) {
-                this.removeCard();
+                this.hand[0].destroy();
+                delete this.mainPlayer.hand[0];
+                delete this.hand[0];
+                this.hand = this.hand.filter(function () { return true });
+                this.mainPlayer.hand = this.mainPlayer.hand.filter(function () { return true });
+                console.log(this.mainPlayer.hand);
             }
-            for (let i = 0; i < this.checkMainPlayer.hand.length; i++) {
-                this.addCard(this.checkMainPlayer.hand[i]);
-            }
+            setTimeout(() => {
+                for (let i = 0; i < checkMainPlayer.hand.length; i++) {
+                    this.addCard(checkMainPlayer.hand[i]);
+                }
+            }, 2000);
         }
 
         //check the other players data

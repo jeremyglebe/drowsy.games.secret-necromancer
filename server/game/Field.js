@@ -205,6 +205,9 @@ class Field {
                 if (card.type == 'necromancy') {
                     if (player.role.name == 'Necromancer' && !this.necroCard) {
                         this.necroCard = card;
+                        this.necroCard.target = targets;
+                        // Remove the card from the player's hand
+                        player.hand.splice(index, 1);
                     }
                 } else {
                     // Activate the spell
