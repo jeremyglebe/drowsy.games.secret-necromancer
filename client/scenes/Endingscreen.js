@@ -25,13 +25,12 @@ class Endingscreen extends Phaser.Scene {
             text.setFontSize(60);
         } else {
             let text = this.add.text(640, 360,
-                "You Lost!\n\n" +
-                "The winner was: ",
-                { color: "red", align: 'center' }).setOrigin(.5, .5);
+                "Game Over!\n\nThe winner(s) were: ",
+                { color: "white", align: 'center'}).setOrigin(.5, .5);
             text.setFontSize(60);
-            for (let winner of this.winners) {
-                text.text += winner + ' ';
-            }
+            //	Font style
+            text.fontSize = 50;
+            text.fontWeight = 'bold';
         }
     }
 
