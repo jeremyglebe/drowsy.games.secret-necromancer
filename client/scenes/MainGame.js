@@ -73,10 +73,12 @@ class MainGame extends Phaser.Scene {
         this.placeHand();
         //place the character card
         this.mainPlayer.characterSprite = new CardSprite(50, 650, this.mainPlayer.character, 0, this);
-        this.mainPlayer.characterSprite.setDraggable(false);
+        this.mainPlayer.characterSprite.setDraggable(false, true);
+        this.mainPlayer.characterSprite.setDefaultPos();
         //place the role card
         this.mainPlayer.RoleSprite = new CardSprite(50, 500, this.mainPlayer.role, 0, this);
-        this.mainPlayer.RoleSprite.setDraggable(false);
+        this.mainPlayer.RoleSprite.setDraggable(false,true);
+        this.mainPlayer.RoleSprite.setDefaultPos();
         //place the health text
         this.mainPlayer.healthText = this.add.text(1140, 620, String(this.mainPlayer.health) + "/100", { color: "white" });
         this.mainPlayer.healthText.setOrigin(.5, .5);
