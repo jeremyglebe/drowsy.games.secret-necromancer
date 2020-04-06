@@ -293,6 +293,8 @@ class MainGame extends Phaser.Scene {
     }
 
     turnChange(username) {
+        //reset ability to play necromancer cards, only matter if this client is the necromancer
+        this.necroCardPlayed = false; 
         //check if it is this client's turn
         if (username == this.mainPlayer.username) {
             this.isYourTurn = true;
