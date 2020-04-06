@@ -122,7 +122,8 @@ class Field {
             // Tell all players that a card was played
             server.emit('spell played', {
                 field: this.getCliField(),
-                cardname: this.necroCard.name
+                cardname: this.necroCard.name,
+                target: "necro"
             });
         }
         this.necroCard = null;
@@ -219,7 +220,8 @@ class Field {
                     // Tell all players that a card was played
                     server.emit('spell played', {
                         field: this.getCliField(),
-                        cardname: name
+                        cardname: name,
+                        target: targets
                     });
                 }
             }
