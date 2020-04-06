@@ -118,7 +118,7 @@ function onDisconnect(socket) {
  * @param socket 
  */
 function onStart(socket) {
-    if (socket.id == vipPlayer && numPlayers >= 3) {
+    if (socket.id == vipPlayer && numPlayers >= 4) {
         // Print details about connected players as we start
         printConnections();
         // Set lobby to false, onConnection needs this to reject later attempts
