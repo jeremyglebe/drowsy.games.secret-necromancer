@@ -2,13 +2,13 @@
   "name": "game_jam_cardgame",
   "version": "0.0.1",
   "description": "Secret identity card game revolving around dark arts and sorcery.",
-  "main": "client/index.js",
+  "main": "client/main.js",
   "scripts": {
     "start": "electron client",
     "test": "electron client dev",
     "server": "node server/server.js",
     "live-server": "nodemon server/server.js",
-    "build:client": "electron-builder --config ./electron-builder-config.json",
+    "build:client": "node client-packager.js",
     "build:server": "pkg server/server.js --targets node12-linux-x64,node12-macos-x64,node12-win-x64 --out-path ./dist/server",
     "build": "npm run build:server & npm run build:client"
   },
@@ -32,14 +32,14 @@
   "dependencies": {
     "express": "^4.17.1",
     "phaser": "^3.22.0",
-    "pkg": "^4.4.6",
     "readline-promise": "^1.0.4",
     "socketio": "^1.0.0"
   },
   "devDependencies": {
     "electron": "^8.2.0",
-    "electron-builder": "^22.4.1",
+    "electron-packager": "^14.2.1",
     "electron-reload": "^1.5.0",
-    "nodemon": "^2.0.2"
+    "nodemon": "^2.0.2",
+    "pkg": "^4.4.6"
   }
 }
