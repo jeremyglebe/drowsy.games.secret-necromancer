@@ -62,6 +62,8 @@ class Field {
         this.players = {};
         /** List of cards in the discard pile */
         this.discard = [];
+        /** Stores the ready-to-execute necromancy card */
+        this.necroCard = null;
 
         // Create the player objects
         this.createPlayers(Array.from(usernames));
@@ -77,6 +79,7 @@ class Field {
     createPlayers(usernames) {
         // Generate a random turn queue
         this.turnQueue = Array.from(usernames);
+        this.turnQueue.push('##NECRO##');
         tools.shuffle(this.turnQueue);
 
         // Shuffle the users to pick random roles
@@ -110,6 +113,14 @@ class Field {
                 this.onTurnEnd(server.sockets[id]);
             });
         }
+    }
+
+    doNecromancy() {
+        if (this.necroCard) {
+            this.necroCard.activate(this);
+        }
+        this.necroCard = null;
+        this.nextTurn();
     }
 
     /** Deal 5 cards from main deck to each of the players */
@@ -245,10 +256,15 @@ class Field {
         let first = this.turnQueue.shift();
         // Push first to now be the last element
         this.turnQueue.push(first);
-        // Let the clients know a new turn has started
-        server.emit('turn start', this.turnQueue[0]);
-        // The person whose turn it now is draws a card
-        this.sendCard(this.turnQueue[0]);
+        if (this.turnQueue[0] != '##NECRO##') {
+            // Let the clients know a new turn has started
+            server.emit('turn start', this.turnQueue[0]);
+            // The person whose turn it now is draws a card
+            this.sendCard(this.turnQueue[0]);
+        } else {
+            // If it's the necromancy phase, do some necromancy!
+            this.doNecromancy();
+        }
     }
 }
 
