@@ -1,0 +1,11 @@
+{
+    "productName": "Terraria-DCG",
+    "linux": {
+        "artifactName": "${productName}-${version}-lin.${ext}",
+        "target": "AppImage"
+    },
+    "win": {
+        "artifactName": "${productName}-${version}-win.${ext}",
+        "target": "portable"
+    }
+}
