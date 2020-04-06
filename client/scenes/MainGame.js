@@ -19,6 +19,8 @@ class MainGame extends Phaser.Scene {
          * Since we don't know who that is yet, we'll wait for the event.
          */
         this.otherPlayers = field.players;
+        /** Tells if a necromancy card ha been played this turn, only matters if this client is a necromancer, default is false */
+        this.necroCardPlayed = false;
         /** Used to keep track of weather it is the players turn */
         this.isYourTurn = false;
         /** Used to store the string displayed by quickTextDisplayTween, scale is managed by tween */
@@ -39,6 +41,7 @@ class MainGame extends Phaser.Scene {
             hold: 1000,
             repeat: false,
         });
+
     }
 
     create() {
