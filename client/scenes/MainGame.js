@@ -19,6 +19,8 @@ class MainGame extends Phaser.Scene {
          * Since we don't know who that is yet, we'll wait for the event.
          */
         this.otherPlayers = field.players;
+        /** Tells if a necromancy card ha been played this turn, only matters if this client is a necromancer, default is false */
+        this.necroCardPlayed = false;
         /** Used to keep track of weather it is the players turn */
         this.isYourTurn = false;
         /** Used to store the string displayed by quickTextDisplayTween, scale is managed by tween */
@@ -39,6 +41,7 @@ class MainGame extends Phaser.Scene {
             hold: 1000,
             repeat: false,
         });
+
     }
 
     create() {
@@ -66,6 +69,16 @@ class MainGame extends Phaser.Scene {
             this.turnChange(username);
         });
 
+        client.on('spell played', this.onSpellPlayed.bind(this));
+        client.on('sync', this.checkSync.bind(this));
+
+    }
+
+    onSpellPlayed(obj) {
+        this.checkSync({
+            player: this.mainPlayer,
+            field: obj.field
+        });
     }
 
     placePlayerSprites() {
@@ -97,7 +110,7 @@ class MainGame extends Phaser.Scene {
         this.otherPlayers[keys[0]].healthText = this.add.text(100, 15, String(this.otherPlayers[keys[0]].health) + "/100", textStyle);
         this.otherPlayers[keys[0]].cardCountIcons = this.add.sprite(120, 70, "backofspell_graphic").setScale(.7);
         this.otherPlayers[keys[0]].cardCountText = this.add.text(150, 60, String(this.otherPlayers[keys[0]].hand), textStyle);
-        this.otherPlayers[keys[0]].usernameText = this.add.text(100,0,this.otherPlayers[keys[0]].username,textStyle);
+        this.otherPlayers[keys[0]].usernameText = this.add.text(100, 0, this.otherPlayers[keys[0]].username, textStyle);
         //Second Other Player
         this.otherPlayers[keys[1]].charSprite = new CardSprite(1230, 70, this.otherPlayers[keys[1]].character, 0, this);
         this.otherPlayers[keys[1]].charSprite.setDraggable(false, true);
@@ -105,7 +118,7 @@ class MainGame extends Phaser.Scene {
         this.otherPlayers[keys[1]].healthText = this.add.text(1110, 15, String(this.otherPlayers[keys[1]].health) + "/100", textStyle);
         this.otherPlayers[keys[1]].cardCountIcons = this.add.sprite(1160, 70, "backofspell_graphic").setScale(.7);
         this.otherPlayers[keys[1]].cardCountText = this.add.text(1120, 60, String(this.otherPlayers[keys[1]].hand), textStyle);
-        this.otherPlayers[keys[1]].usernameText = this.add.text(1110,0,this.otherPlayers[keys[1]].username,textStyle);
+        this.otherPlayers[keys[1]].usernameText = this.add.text(1110, 0, this.otherPlayers[keys[1]].username, textStyle);
         //Third Other Player if there is one
         if (keys.length >= 3) {
             this.otherPlayers[keys[2]].charSprite = new CardSprite(50, 250, this.otherPlayers[keys[2]].character, 0, this);
@@ -114,7 +127,7 @@ class MainGame extends Phaser.Scene {
             this.otherPlayers[keys[2]].healthText = this.add.text(100, 195, String(this.otherPlayers[keys[2]].health) + "/100", textStyle);
             this.otherPlayers[keys[2]].cardCountIcons = this.add.sprite(120, 250, "backofspell_graphic").setScale(.7);
             this.otherPlayers[keys[2]].cardCountText = this.add.text(150, 240, String(this.otherPlayers[keys[2]].hand), textStyle);
-            this.otherPlayers[keys[2]].usernameText = this.add.text(100,180,this.otherPlayers[keys[2]].username,textStyle);
+            this.otherPlayers[keys[2]].usernameText = this.add.text(100, 180, this.otherPlayers[keys[2]].username, textStyle);
         }
         //Fourth Other Player if there is one
         if (keys.length == 4) {
@@ -124,7 +137,7 @@ class MainGame extends Phaser.Scene {
             this.otherPlayers[keys[3]].healthText = this.add.text(1110, 195, String(this.otherPlayers[keys[3]].health) + "/100", textStyle);
             this.otherPlayers[keys[3]].cardCountIcons = this.add.sprite(1160, 250, "backofspell_graphic").setScale(.7);
             this.otherPlayers[keys[3]].cardCountText = this.add.text(1120, 240, String(this.otherPlayers[keys[3]].hand), textStyle);
-            this.otherPlayers[keys[3]].usernameText = this.add.text(1110,180,this.otherPlayers[keys[3]].username,textStyle);
+            this.otherPlayers[keys[3]].usernameText = this.add.text(1110, 180, this.otherPlayers[keys[3]].username, textStyle);
         }
     }
 
@@ -168,12 +181,27 @@ class MainGame extends Phaser.Scene {
     addCard(card) {
         this.mainPlayer.hand.push(card);
         let tempCard = new CardSprite(200, 650, card, 0, this);
-        tempCard.specEmitter.on("cardDragEnd", this.checkOverlap, this);
+        tempCard.specEmitter.on("cardDragEnd", this.checkOverlapTarget, this);
         this.hand.push(tempCard);
         this.placeHand();
     }
 
-    checkOverlap(cardBounds, that){
+    checkOverlapTarget(cardBounds, that) {
+        let target = that.card.targetType;
+        console.log(that);
+        console.log(target);
+        if (target == "player") {
+            this.checkOtherPlayersOverlap(cardBounds, that);
+        } else if (target == "self") {
+            this.checkMainplayerOverlap(cardBounds, that);
+        } else if (target == "others" || target == "all") {
+            this.checkUpperBoundsOverlap(that);
+        } else {
+            that.restoreDefaultPos();
+        }
+    }
+
+    checkOtherPlayersOverlap(cardBounds, that) {
         let overlapped = false;
         //grab the keys of our players to check
         let keys = Object.keys(this.otherPlayers);
@@ -181,14 +209,70 @@ class MainGame extends Phaser.Scene {
         for (let key of keys) {
             if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds()) && this.isYourTurn) {
                 overlapped = true;
-                client.emit('play spell', {
-                    index: that.index,
-                    name: that.card.name,
-                    targets: key
-                });
-                //remove the card client side
-                this.removeCard(that.index);
+                //determine if it is a spell or an item
+                if (that.card.type == "spell") {
+                    client.emit('play spell', {
+                        index: that.index,
+                        name: that.card.name,
+                        targets: key
+                    });
+                } else if (that.card.type == "item") {
+                    client.emit('play spell', {
+                        index: that.index,
+                        name: that.card.name,
+                        targets: key
+                    });
+                } else if (that.card.type == "necromancy") {
+                    if (this.necroCardPlayed == false) {
+                        this.necroCardPlayed = true;
+                        client.emit('play spell', {
+                            index: that.index,
+                            name: that.card.name,
+                            targets: key
+                        });
+                    } else {
+                        overlapped = false;
+                    }
+                }
+                if (overlapped) {
+                    this.removeCard(that.index);
+                }
             }
+        }
+        if (!overlapped) {
+            that.restoreDefaultPos();
+        }
+    }
+
+    checkMainplayerOverlap(cardBounds, that) {
+        let overlapped = false;
+        //check if the card overlapped with any of the players cards
+        if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.mainPlayer.characterSprite.getBounds()) && this.isYourTurn) {
+            overlapped = true;
+            client.emit('play spell', {
+                index: that.index,
+                name: that.card.name,
+                targets: this.mainPlayer.username
+            });
+            this.removeCard(that.index);
+        }
+        if (!overlapped) {
+            that.restoreDefaultPos();
+        }
+    }
+
+    checkUpperBoundsOverlap(that) {
+        let overlapped = false;
+        //check if the card overlapped with any of the players cards
+        console.log(that);
+        if (that.graphic.y > 250) {
+            overlapped = true;
+            client.emit('play spell', {
+                index: that.index,
+                name: that.card.name,
+                targets: "ignore me"
+            });
+            this.removeCard(that.index);
         }
         if (!overlapped) {
             that.restoreDefaultPos();
@@ -210,6 +294,8 @@ class MainGame extends Phaser.Scene {
     }
 
     turnChange(username) {
+        //reset ability to play necromancer cards, only matter if this client is the necromancer
+        this.necroCardPlayed = false;
         //check if it is this client's turn
         if (username == this.mainPlayer.username) {
             this.isYourTurn = true;
@@ -265,24 +351,27 @@ class MainGame extends Phaser.Scene {
 
         //check sync on client's main player
         //check health
-        if (checkMainPlayer.health != this.mainPlayer.health) { setMainPlayersHealth(checkMainPlayer.health); }
+        if (checkMainPlayer.health != this.mainPlayer.health) { this.setMainPlayersHealth(checkMainPlayer.health); }
         //check hand size
         if (checkMainPlayer.hand.length != this.mainPlayer.hand.length) { mainPlayerHandBad = true; }
         //if hand size is good, check individual cards
         if (!mainPlayerHandBad) {
             for (let i = 0; i < checkMainPlayer.hand.length; i++) {
-                if (checkMainPlayer.hand[i] != this.mainPlayer.hand[i]) {
+                if (checkMainPlayer.hand[i].name != this.mainPlayer.hand[i].name) {
                     mainPlayerHandBad = true;
                 }
             }
         }
         //if it's not synced, remove the hand and manually resync it
         if (mainPlayerHandBad) {
-            for (let i = 0; i < this.mainPlayer.hand.length; i++) {
-                this.removeCard();
+            console.log("hands not synced!", this.mainPlayer.hand.length, checkMainPlayer.hand.length);
+            for (let obj of this.hand) {
+                obj.destroy();
             }
-            for (let i = 0; i < this.checkMainPlayer.hand.length; i++) {
-                this.addCard(this.checkMainPlayer.hand[i]);
+            this.mainPlayer.hand = [];
+            this.hand = [];
+            for (let i = 0; i < checkMainPlayer.hand.length; i++) {
+                this.addCard(checkMainPlayer.hand[i]);
             }
         }
 

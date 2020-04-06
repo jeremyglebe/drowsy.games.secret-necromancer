@@ -15,6 +15,7 @@ class Spell extends Card {
          * 'self', 'player', 'others', 'all'
          */
         this.targetType = targetType;
+        this.type = 'spell';
     }
 
     /** Activates the cards effect */
