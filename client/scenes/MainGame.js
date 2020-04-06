@@ -23,6 +23,8 @@ class MainGame extends Phaser.Scene {
         this.necroCardPlayed = false;
         /** Used to keep track of weather it is the players turn */
         this.isYourTurn = false;
+        /** Keeps track of whos turn it is */
+        this.whosTurn = "";
         /** Used to store the string displayed by quickTextDisplayTween, scale is managed by tween */
         this.quickText = this.add.text(640, 200, "QuickText", { color: "white", bold: true }).setOrigin(.5, .5);
         this.quickText.setFontSize(50);
@@ -79,12 +81,16 @@ class MainGame extends Phaser.Scene {
 
 
     displayGrandmaster(username) {
-        console.log("DISPLAY DA MASTER! DOOOOOOOOOO IT");
-        this.GrandmasterText = this.add.text(640, 15, "The Grandmaster is: " + username, { color: 'white' });
-        this.GrandmasterText.setFontSize(20);
+        this.GrandmasterText = this.add.text(640, 15, "The Grandmaster is: " + username, { color: 'white' }).setOrigin(.5);
+        this.GrandmasterText.setFontSize(40);
     }
 
     onSpellPlayed(obj) {
+        if (obj.target == "ignore me" && !this.isYourTurn){
+            this.quickTextDisplay(this.whosTurn + " played " + obj.cardname);
+        } else if (!this.isYourTurn){
+            this.quickTextDisplay(this.whosTurn + " played " + obj.cardname + " on " + obj.target);
+        }
         this.checkSync({
             player: this.mainPlayer,
             field: obj.field
@@ -314,6 +320,7 @@ class MainGame extends Phaser.Scene {
             this.turnEndButton.setScale(1);
             this.turnEndButtonText.setScale(1);
         } else {
+            this.whosTurn = username;
             this.quickTextDisplay("It's " + username + "'s turn!");
         }
     }
@@ -329,8 +336,13 @@ class MainGame extends Phaser.Scene {
     }
 
     quickTextDisplay(string) {
-        this.quickText.setText(string);
-        this.quickTextDisplayTween.play();
+        if (this.quickTextDisplayTween.isPlaying()){
+            this.quickText.setText(string);
+            this.quickTextDisplayTween.restart();
+        } else {
+            this.quickText.setText(string);
+            this.quickTextDisplayTween.play();
+        }
     }
 
     gameOver(winners) {
