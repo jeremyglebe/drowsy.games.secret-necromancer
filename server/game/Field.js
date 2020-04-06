@@ -46,6 +46,7 @@ const Necromancer = require('./roles/Necromancer');
 const Sorcerer = require('./roles/Sorcerer');
 const CharDeck = require('./cards/decks/CharDeck');
 const MainDeck = require('./cards/decks/MainDeck');
+const NecroDeck = require('./cards/decks/NecroDeck');
 
 class Field {
 
