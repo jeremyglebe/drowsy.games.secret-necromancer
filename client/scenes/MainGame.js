@@ -72,10 +72,11 @@ class MainGame extends Phaser.Scene {
         client.on('spell played', this.onSpellPlayed.bind(this));
         client.on('sync', this.checkSync.bind(this));
         client.on('game over', this.gameOver.bind(this));
+        client.on('death', this.userDie.bind(this));
 
     }
 
-    displayGrandmaster(username){
+    displayGrandmaster(username) {
         this.quickTextDisplay("The Grandmaster is " + username + "!");
     }
 
@@ -341,9 +342,12 @@ class MainGame extends Phaser.Scene {
             this.mainPlayer.healthText.setText("You Died");
         } else {
             this.quickTextDisplay("Player " + username + " Died!");
+            console.log(this.otherPlayers, username);
             this.otherPlayers[username].healthText.setText("dead");
             //make sure cards cannot be played on this player's card
-            delete this.otherPlayers[username];
+            setTimeout(() => {
+                delete this.otherPlayers[username];
+            }, 1000);
         }
     }
 

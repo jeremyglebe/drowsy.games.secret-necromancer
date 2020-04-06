@@ -41,6 +41,7 @@ const Field = require('../game/Field');
 
 // Create a game field to pass to the players
 var field = new Field(Object.values(server.usernames));
+var deadPeople = [];
 
 // Start the match
 startMatch();
@@ -88,6 +89,20 @@ setInterval(() => {
         if (player.role.name == "Grandmaster") {
             grandmaster = name;
         }
+
+        // Handle death and stuff
+        if (player.health <= 0 && !deadPeople.includes(name)) {
+            console.log("Sending the bad news about", name);
+            server.emit('death', name);
+            deadPeople.push(name);
+            for (let i = 0; i < field.turnQueue.length; i++) {
+                let guy = field.turnQueue[i];
+                if (guy == name) {
+                    field.turnQueue.splice(i, 1);
+                }
+            }
+        }
+
     }
     if (field.players[necromancer].health <= 0) {
         winners = [];
