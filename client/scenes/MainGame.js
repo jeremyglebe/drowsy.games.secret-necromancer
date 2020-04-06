@@ -75,6 +75,10 @@ class MainGame extends Phaser.Scene {
 
     }
 
+    displayGrandmaster(username){
+        this.quickTextDisplay("The Grandmaster is " + username + "!");
+    }
+
     onSpellPlayed(obj) {
         this.checkSync({
             player: this.mainPlayer,
