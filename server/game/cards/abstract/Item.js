@@ -5,6 +5,7 @@ class Item extends Card {
     constructor(name, description) {
         super(name, description)
         this.type = 'item';
+        this.targetType = 'self';
     }
 
     /**
