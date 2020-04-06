@@ -4,8 +4,10 @@ class Sorcerer extends Role {
 
     constructor() {
         super("Sorcerer", ""
-            + "You must takeout the\n"
-            + "Grandmaster");
+            + "Protect the\n"
+            + "Grandmaster at all\n"
+            + "costs!"
+        );
     }
 }
 
