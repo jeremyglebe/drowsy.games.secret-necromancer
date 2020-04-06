@@ -73,12 +73,14 @@ class MainGame extends Phaser.Scene {
         client.on('sync', this.checkSync.bind(this));
         client.on('game over', this.gameOver.bind(this));
         client.on('death', this.userDie.bind(this));
+        client.on('the gmaster bro reveals himself', this.displayGrandmaster.bind(this));
 
     }
 
 
-    displayGrandmaster(username){
-        this.GrandmasterText = this.add.text(640,15,"The Grandmaster is: " + username,{color: white});
+    displayGrandmaster(username) {
+        console.log("DISPLAY DA MASTER! DOOOOOOOOOO IT");
+        this.GrandmasterText = this.add.text(640, 15, "The Grandmaster is: " + username, { color: 'white' });
         this.GrandmasterText.setFontSize(20);
     }
 

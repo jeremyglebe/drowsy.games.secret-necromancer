@@ -59,6 +59,13 @@ function startMatch() {
         setTimeout(() => {
             // Deal cards to all the players
             field.dealHands(Object.values(server.usernames));
+            // Announce the grand master
+            for (let [name, player] of Object.entries(field.players)) {
+                if (player.role.name == "Grandmaster") {
+
+                    server.emit('the gmaster bro reveals himself', name);
+                }
+            }
             // Start the first turn of the game
             field.nextTurn();
         }, 25);
