@@ -180,12 +180,27 @@ class MainGame extends Phaser.Scene {
     addCard(card) {
         this.mainPlayer.hand.push(card);
         let tempCard = new CardSprite(200, 650, card, 0, this);
-        tempCard.specEmitter.on("cardDragEnd", this.checkOverlap, this);
+        tempCard.specEmitter.on("cardDragEnd",  this.checkOverlapTarget, this);
         this.hand.push(tempCard);
         this.placeHand();
     }
 
-    checkOverlap(cardBounds, that) {
+    checkOverlapTarget(cardBounds, that){
+        let target = that.card.targetType;
+        console.log(that);
+        console.log(target);
+        if (target == "player"){
+            this.checkOtherPlayersOverlap(cardBounds, that);
+        } else if (target == "self"){
+            this.checkMainplayerOverlap(cardBounds, that);
+        } else if (target == "others" || target == "all"){
+            this.checkUpperBoundsOverlap(that);
+        } else {
+            that.restoreDefaultPos();
+        }
+    }
+
+    checkOtherPlayersOverlap(cardBounds, that) {
         let overlapped = false;
         //grab the keys of our players to check
         let keys = Object.keys(this.otherPlayers);
@@ -193,14 +208,70 @@ class MainGame extends Phaser.Scene {
         for (let key of keys) {
             if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds()) && this.isYourTurn) {
                 overlapped = true;
-                client.emit('play spell', {
-                    index: that.index,
-                    name: that.card.name,
-                    targets: key
-                });
-                //remove the card client side
-                this.removeCard(that.index);
+                //determine if it is a spell or an item
+                if(that.card.type == "spell"){
+                    client.emit('play spell', {
+                        index: that.index,
+                        name: that.card.name,
+                        targets: key
+                    });
+                } else if (that.card.type == "item"){
+                    client.emit('play spell', {
+                        index: that.index,
+                        name: that.card.name,
+                        targets: key
+                    });
+                } else if (that.card.type == "necromancy"){
+                    if (this.necroCardPlayed == false){
+                        this.necroCardPlayed = true;
+                        client.emit('play spell', {
+                            index: that.index,
+                            name: that.card.name,
+                            targets: key
+                        });
+                    } else {
+                        overlapped = false;
+                    }
+                }
+                if(overlapped){
+                    this.removeCard(that.index);
+                }
             }
+        }
+        if (!overlapped) {
+            that.restoreDefaultPos();
+        }
+    }
+
+    checkMainplayerOverlap(cardBounds, that){
+        let overlapped = false;
+        //check if the card overlapped with any of the players cards
+        if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.mainPlayer.characterSprite.getBounds()) && this.isYourTurn){
+            overlapped = true;
+            client.emit('play spell', {
+                index: that.index,
+                name: that.card.name,
+                targets: this.mainPlayer.username
+            });
+            this.removeCard(that.index);
+        }
+        if (!overlapped) {
+            that.restoreDefaultPos();
+        }
+    }
+
+    checkUpperBoundsOverlap(that){
+        let overlapped = false;
+        //check if the card overlapped with any of the players cards
+        console.log(that);
+        if (that.graphic.y > 250){
+            overlapped = true;
+            client.emit('play spell', {
+                index: that.index,
+                name: that.card.name,
+                targets: "ignore me"
+            });
+            this.removeCard(that.index);
         }
         if (!overlapped) {
             that.restoreDefaultPos();
