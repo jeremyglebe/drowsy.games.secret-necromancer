@@ -75,7 +75,8 @@ class MainGame extends Phaser.Scene {
     }
 
     displayGrandmaster(username){
-        this.quickTextDisplay("The Grandmaster is " + username + "!");
+        this.GrandmasterText = this.add.text(640,15,"The Grandmaster is: " + username,{color: white});
+        this.GrandmasterText.setFontSize(20);
     }
 
     onSpellPlayed(obj) {
