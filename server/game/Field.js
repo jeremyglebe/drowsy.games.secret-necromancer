@@ -62,6 +62,8 @@ class Field {
         this.players = {};
         /** List of cards in the discard pile */
         this.discard = [];
+        /** Stores the ready-to-execute necromancy card */
+        this.necroCard = null;
 
         // Create the player objects
         this.createPlayers(Array.from(usernames));
@@ -77,6 +79,7 @@ class Field {
     createPlayers(usernames) {
         // Generate a random turn queue
         this.turnQueue = Array.from(usernames);
+        this.turnQueue.push('##NECRO##');
         tools.shuffle(this.turnQueue);
 
         // Shuffle the users to pick random roles
@@ -112,6 +115,19 @@ class Field {
         }
     }
 
+    doNecromancy() {
+        if (this.necroCard) {
+            this.necroCard.activate(this);
+            // Tell all players that a card was played
+            server.emit('spell played', {
+                field: this.getCliField(),
+                cardname: this.necroCard.name
+            });
+        }
+        this.necroCard = null;
+        setTimeout(this.nextTurn.bind(this), 5000);
+    }
+
     /** Deal 5 cards from main deck to each of the players */
     dealHands(usernames) {
         for (let name of usernames) {
@@ -141,6 +157,11 @@ class Field {
                     cliPly[key] = ply[key];
                 }
                 cliPly['hand'] = ply['hand'].length;
+                for (let card of ply.hand) {
+                    if (card.type == 'necromancy') {
+                        cliPly['hand']--;
+                    }
+                }
             }
             // Add cliPly to new fields list of players
             cliField.players[plyKey] = cliPly;
@@ -174,27 +195,29 @@ class Field {
         let currentPlayerID = nameToID[this.turnQueue[0]];
         // Make sure that it is actually the player whose turn it is
         if (socket.id == currentPlayerID) {
-            console.log("player activated a spell");
             // Get a reference to the player
             let player = this.players[this.turnQueue[0]];
-            console.log(player, 'played', name);
-            console.log("card at index is", player.hand[index].name);
             // Confirm the card names match at the given index
             if (name == player.hand[index].name) {
-                console.log("confirmed cards match!");
                 // Store the card
                 let card = player.hand[index];
-                // Activate the spell
-                card.activate(this, player.username, targets);
-                // Remove the card from the player's hand
-                player.hand.splice(index, 1);
-                // Add card to the discard pile
-                this.discard.push(card);
-                // Tell all players that a card was played
-                server.emit('spell played', {
-                    field: this,
-                    cardname: name
-                });
+                if (card.type == 'necromancy') {
+                    if (player.role.name == 'Necromancer' && !this.necroCard) {
+                        this.necroCard = card;
+                    }
+                } else {
+                    // Activate the spell
+                    card.activate(this, player.username, targets);
+                    // Remove the card from the player's hand
+                    player.hand.splice(index, 1);
+                    // Add card to the discard pile
+                    this.discard.push(card);
+                    // Tell all players that a card was played
+                    server.emit('spell played', {
+                        field: this.getCliField(),
+                        cardname: name
+                    });
+                }
             }
         }
     }
@@ -237,6 +260,23 @@ class Field {
         );
     }
 
+    sendNecromancy(username) {
+        // Get the player's hand array
+        let hand = this.players[username].hand;
+        // Draw the card from the deck
+        let card = NecroDeck.pop();
+        // Add the card to the hand
+        hand.push(card);
+        // Let the client know about the card
+        server.emitTo(
+            // Change the id->username map to a username->id map
+            // Then subscript the username to get the id
+            tools.reverseObject(server.usernames)[username],
+            'your new card',
+            card
+        );
+    }
+
     /**
      * Moves the item at the front of the turnQueue to the back.
      */
@@ -245,10 +285,19 @@ class Field {
         let first = this.turnQueue.shift();
         // Push first to now be the last element
         this.turnQueue.push(first);
-        // Let the clients know a new turn has started
-        server.emit('turn start', this.turnQueue[0]);
-        // The person whose turn it now is draws a card
-        this.sendCard(this.turnQueue[0]);
+        if (this.turnQueue[0] != '##NECRO##') {
+            // Let the clients know a new turn has started
+            server.emit('turn start', this.turnQueue[0]);
+            // The person whose turn it now is draws a card
+            this.sendCard(this.turnQueue[0]);
+            if (this.players[this.turnQueue[0]].role.name == 'Necromancer') {
+                console.log("Send the necromancer a card")
+                this.sendNecromancy(this.turnQueue[0]);
+            }
+        } else {
+            // If it's the necromancy phase, do some necromancy!
+            this.doNecromancy();
+        }
     }
 }
 

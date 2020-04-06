@@ -76,9 +76,9 @@ class CardSprite {
         //let listerners for certain emitted events
         // this.scene.input.on('pointerdown', this.rightClick, this)
         this.graphic.on('pointerdown', this.rightClick, this);
-        this.scene.input.on("dragstart", this.dragStart, this)
-        this.scene.input.on('drag', this.whenDragged, this);
-        this.scene.input.on("dragend", this.stoppedDragging, this);
+        this.graphic.on("dragstart", this.dragStart, this)
+        this.graphic.on('drag', this.whenDragged, this);
+        this.graphic.on("dragend", this.stoppedDragging, this);
 
         //create the name text graphic
         this.nameText = this.scene.add.text(this.graphic.x - 28, this.graphic.y - 59, this.card.name, {
@@ -131,9 +131,9 @@ class CardSprite {
     }
 
     /** What to do when the object is being dragged */
-    whenDragged(pointer, gameObject, dragX, dragY) {
-        gameObject.x = dragX;
-        gameObject.y = dragY;
+    whenDragged(pointer) {
+        this.graphic.setX(pointer.x);
+        this.graphic.setY(pointer.y);
         this.moveText();
     }
 
