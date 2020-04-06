@@ -177,7 +177,7 @@ class MainGame extends Phaser.Scene {
         this.placeHand();
     }
 
-    checkOverlap(cardBounds, that) {
+    checkOverlap(cardBounds, that){
         let overlapped = false;
         //grab the keys of our players to check
         let keys = Object.keys(this.otherPlayers);
@@ -185,7 +185,6 @@ class MainGame extends Phaser.Scene {
         for (let key of keys) {
             if (Phaser.Geom.Rectangle.Overlaps(cardBounds, this.otherPlayers[key].charSprite.graphic.getBounds()) && this.isYourTurn) {
                 overlapped = true;
-                console.log(that);
                 client.emit('play spell', {
                     index: that.index,
                     name: that.card.name,
