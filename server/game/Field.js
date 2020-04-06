@@ -120,7 +120,7 @@ class Field {
             this.necroCard.activate(this);
             // Tell all players that a card was played
             server.emit('spell played', {
-                field: this,
+                field: this.getCliField(),
                 cardname: this.necroCard.name
             });
         }
@@ -202,7 +202,7 @@ class Field {
                 // Store the card
                 let card = player.hand[index];
                 if (card.type == 'necromancy') {
-                    if (player.role.name == 'necromancer' && !this.necroCard) {
+                    if (player.role.name == 'Necromancer' && !this.necroCard) {
                         this.necroCard = card;
                     }
                 } else {
@@ -214,7 +214,7 @@ class Field {
                     this.discard.push(card);
                     // Tell all players that a card was played
                     server.emit('spell played', {
-                        field: this,
+                        field: this.getCliField(),
                         cardname: name
                     });
                 }
@@ -290,7 +290,8 @@ class Field {
             server.emit('turn start', this.turnQueue[0]);
             // The person whose turn it now is draws a card
             this.sendCard(this.turnQueue[0]);
-            if (this.players[this.turnQueue[0]].role.name == 'necromancer') {
+            if (this.players[this.turnQueue[0]].role.name == 'Necromancer') {
+                console.log("Send the necromancer a card")
                 this.sendNecromancy(this.turnQueue[0]);
             }
         } else {

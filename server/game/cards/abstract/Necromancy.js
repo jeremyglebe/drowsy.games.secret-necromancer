@@ -3,7 +3,7 @@ const Spell = require('./Spell');
 class Necromancy extends Spell {
 
     constructor(name, description) {
-        super(name, description)
+        super(name, description, targetType)
         /**
          * Tells who all this card can target. Since targets are passed
          * directly into activate(), this is really for the client. It lets the
@@ -14,8 +14,9 @@ class Necromancy extends Spell {
          * Acceptable values are the following strings:
          * 'self', 'player', 'others', 'all'
          */
-        this.targetType = 'all';
+        this.targetType = targetType;
         this.type = 'necromancy';
+        this.target = null;
     }
 
     /** Activates the cards effect */
