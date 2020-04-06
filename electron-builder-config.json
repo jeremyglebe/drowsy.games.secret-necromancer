@@ -1,5 +1,6 @@
 {
-    "productName": "Terraria-DCG",
+    "extends": null,
+    "productName": "Secret Necromancer",
     "linux": {
         "artifactName": "${productName}-${version}-lin.${ext}",
         "target": "AppImage"

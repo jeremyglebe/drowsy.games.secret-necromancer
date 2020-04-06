@@ -1,24 +1,5 @@
 class SocketServer {
 
-    static app = require('express')();
-    static http = require('http').createServer(SocketServer.app);
-    static io = require('socket.io')(SocketServer.http);
-
-    /**
-     * Map of connected sockets of the form id->socket
-     * This property isn't maintained by the class, but should be maintained
-     * in it's connection/disconnection event listeners, wherever they are
-     * declared.
-     */
-    static sockets = {};
-    /**
-     * Map of usernames of the form id->username
-     * This property isn't maintained by the class, but should be maintained
-     * in it's connection/disconnection event listeners, wherever they are
-     * declared.
-     */
-    static usernames = {};
-
     static emit(key, data) {
         // console.log(key, data);
         SocketServer.io.emit(key, data);
@@ -41,5 +22,26 @@ class SocketServer {
         SocketServer.io.on(key, callback);
     }
 }
+
+
+SocketServer.app = require('express')();
+SocketServer.http = require('http').createServer(SocketServer.app);
+SocketServer.io = require('socket.io')(SocketServer.http);
+
+/**
+ * Map of connected sockets of the form id->socket
+ * This property isn't maintained by the class, but should be maintained
+ * in it's connection/disconnection event listeners, wherever they are
+ * declared.
+ */
+SocketServer.sockets = {};
+/**
+ * Map of usernames of the form id->username
+ * This property isn't maintained by the class, but should be maintained
+ * in it's connection/disconnection event listeners, wherever they are
+ * declared.
+ */
+SocketServer.usernames = {};
+
 
 module.exports = SocketServer;
