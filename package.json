@@ -33,6 +33,7 @@
     "electron": "^8.2.0",
     "express": "^4.17.1",
     "phaser": "^3.22.0",
+    "pkg": "^4.4.6",
     "readline-promise": "^1.0.4",
     "socketio": "^1.0.0"
   },
