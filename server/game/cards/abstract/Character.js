@@ -4,6 +4,7 @@ class Character extends Card {
 
     constructor(name, description) {
         super(name, description)
+        this.type = 'character';
     }
 
     /**
