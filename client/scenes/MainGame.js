@@ -237,6 +237,25 @@ class MainGame extends Phaser.Scene {
         this.quickTextDisplayTween.play();
     }
 
+    gameOver(username){
+        if (this.mainPlayer.username == username){
+            this.scene.start("Endingscreen",{status: "won", username: username});
+        } else {
+            this.scene.start("Endingscreen",{status: "lost", username: username});
+        }
+    }
+
+    userDie(username){
+        if (this.mainPlayer.username == username){
+            this.mainPlayer.healthText.setText("You Died");
+        } else {
+            this.quickTextDisplay("Player " + username + " Died!");
+            this.otherPlayers[username].healthText.setText("dead");
+            //make sure cards cannot be played on this player's card
+            delete this.otherPlayers[username];
+        }
+    }
+
     checkSync(data) {
         //data to check against
         let checkMainPlayer = data.player;
