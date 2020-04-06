@@ -295,7 +295,7 @@ class MainGame extends Phaser.Scene {
 
     turnChange(username) {
         //reset ability to play necromancer cards, only matter if this client is the necromancer
-        this.necroCardPlayed = false; 
+        this.necroCardPlayed = false;
         //check if it is this client's turn
         if (username == this.mainPlayer.username) {
             this.isYourTurn = true;
@@ -346,19 +346,14 @@ class MainGame extends Phaser.Scene {
         //if it's not synced, remove the hand and manually resync it
         if (mainPlayerHandBad) {
             console.log("hands not synced!", this.mainPlayer.hand.length, checkMainPlayer.hand.length);
-            for (let i = 0; i < this.mainPlayer.hand.length; i++) {
-                this.hand[0].destroy();
-                delete this.mainPlayer.hand[0];
-                delete this.hand[0];
-                this.hand = this.hand.filter(function () { return true });
-                this.mainPlayer.hand = this.mainPlayer.hand.filter(function () { return true });
-                console.log(this.mainPlayer.hand);
+            for (let obj of this.hand) {
+                obj.destroy();
             }
-            setTimeout(() => {
-                for (let i = 0; i < checkMainPlayer.hand.length; i++) {
-                    this.addCard(checkMainPlayer.hand[i]);
-                }
-            }, 2000);
+            this.mainPlayer.hand = [];
+            this.hand = [];
+            for (let i = 0; i < checkMainPlayer.hand.length; i++) {
+                this.addCard(checkMainPlayer.hand[i]);
+            }
         }
 
         //check the other players data
