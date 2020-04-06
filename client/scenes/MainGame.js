@@ -156,15 +156,11 @@ class MainGame extends Phaser.Scene {
     }
 
     removeCard(index = 0) {
-        console.log(index);
         //remove the card object
         this.mainPlayer.hand.splice(index, 1);
         //remove the cards graphical representation
         let destroyArray = this.hand.splice(index, 1);
-        console.log(destroyArray[0])
         destroyArray[0].destroy();
-        delete destroyArray[0];
-        console.log(destroyArray[0])
         //replace cards as needed
         this.placeHand();
     }
