@@ -53,7 +53,7 @@ npm run dev
 
 `npm test` runs a bunch of bot-only games to make sure nothing's broken, and `npm run build` spits out a static site in `dist/`. You have to serve that folder with something (`npx vite preview` works); opening the HTML file directly won't load.
 
-If you're poking around the code: the game rules are in `src/host` (this used to be the server), the networking is in `src/net`, the Phaser scenes are in `src/scenes`, and the bots are in `src/bots`. The original art files from the jam are in `assets/art_dump`.
+If you're poking around the code: the game rules are in `src/host` (this used to be the server), the networking is in `src/net`, the Phaser scenes are in `src/scenes`, and the bots are in `src/bots`. Art the game uses is in `public/assets`. Art we made for the jam that never got used is in `assets/art_dump`.
 
 ## Credits
 
