@@ -15,7 +15,7 @@
     "url": "git+https://github.com/jeremyglebe/game_jam_cardgame.git"
   },
   "author": "Jeremy Glebe, Gracie Glebe, Zachary Kingcade",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "dependencies": {
     "peerjs": "^1.5.5",
     "phaser": "^3.90.0"
