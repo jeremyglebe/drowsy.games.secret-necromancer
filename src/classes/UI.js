@@ -6,16 +6,20 @@
  * @returns {{ rect: Phaser.GameObjects.Rectangle, text: Phaser.GameObjects.Text, setEnabled: (b: boolean) => void, setVisible: (b: boolean) => void }}
  */
 export function makeButton(scene, x, y, width, height, label, onClick, color = 0x88FF88) {
-    const rect = scene.add.rectangle(x, y, width, height, color, 0.5)
-        .setOrigin(0.5)
-        .setStrokeStyle(2, 0xffffff, 0.6)
-        .setInteractive({ useHandCursor: true });
     const text = scene.add.text(x, y, label, {
         fontSize: Math.min(32, Math.floor(height * 0.55)) + 'px',
         color: '#ffffff',
         stroke: '#000000',
         strokeThickness: 4,
     }).setOrigin(0.5);
+    // Grow to fit the label so text never touches the edges
+    const paddedWidth = Math.max(width, text.width + 48);
+    const rect = scene.add.rectangle(x, y, paddedWidth, height, color, 0.5)
+        .setOrigin(0.5)
+        .setStrokeStyle(2, 0xffffff, 0.6)
+        .setInteractive({ useHandCursor: true });
+    // Draw the label above its box
+    text.setDepth(rect.depth + 1);
     let enabled = true;
     rect.on('pointerover', () => enabled && rect.setFillStyle(color, 0.75));
     rect.on('pointerout', () => rect.setFillStyle(color, enabled ? 0.5 : 0.2));
