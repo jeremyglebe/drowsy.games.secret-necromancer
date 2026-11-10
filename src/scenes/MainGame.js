@@ -35,8 +35,8 @@ class MainGame extends Phaser.Scene {
         this.hand = [];
         /** Whether we already queued a necromancy card this turn */
         this.necroCardPlayed = false;
-        /** Once-per-turn cards (Bolt) we've already played this turn */
-        this.playedThisTurn = new Set();
+        /** How many once-per-turn cards (Bolts) we've played this turn */
+        this.playedThisTurn = new Map();
         this.isYourTurn = false;
         this.whosTurn = "";
         this.dead = false;
@@ -73,9 +73,9 @@ class MainGame extends Phaser.Scene {
 
         // Hover tooltip for reading cards
         this.tooltipBg = this.add.rectangle(640, 300, 380, 150, 0x1a0026, 0.9)
-            .setStrokeStyle(2, 0xb36bff).setDepth(60).setVisible(false);
+            .setStrokeStyle(2, 0xb36bff).setDepth(80).setVisible(false);
         this.tooltipText = this.add.text(640, 300, "", { ...textStyle(20), wordWrap: { width: 360 } })
-            .setOrigin(0.5).setDepth(61).setVisible(false);
+            .setOrigin(0.5).setDepth(81).setVisible(false);
 
         client.on('your player', (player) => {
             this.mainPlayer = player;
@@ -86,10 +86,18 @@ class MainGame extends Phaser.Scene {
             this.placeOtherPlayers();
             this.createTurnEndButton();
             for (const card of handData) this.addCard(card);
-            if (this.tutorialMode) this.tutorial = new Tutorial(this);
+            if (this.tutorialMode) {
+                // The tutorial explains everything itself, so skip the reveal
+                client.emit('ready');
+                this.tutorial = new Tutorial(this);
+            } else {
+                this.showSetup();
+            }
         });
         client.on('your new card', (card) => this.addCard(card));
         client.on('table settings', ({ cardHold }) => { if (cardHold) this.fx.hold = cardHold; });
+        client.on('ready status', (status) => this.onReadyStatus(status));
+        client.on('all ready', () => this.hideSetup());
         client.on('turn start', (username) => this.turnChange(username));
         client.on('spell played', this.onSpellPlayed.bind(this));
         client.on('sync', this.checkSync.bind(this));
@@ -106,6 +114,62 @@ class MainGame extends Phaser.Scene {
                 this.time.delayedCall(2500, () => location.reload());
             }
         });
+    }
+
+    /* ---------------------------------------------------------------- */
+    /* Pre-game: look at your role and character, then ready up          */
+    /* ---------------------------------------------------------------- */
+
+    showSetup() {
+        const me = this.mainPlayer;
+        const objs = this.setupObjects = [];
+        const depth = 70;
+        objs.push(this.add.rectangle(640, 300, 820, 380, 0x1a0026, 0.94).setStrokeStyle(3, 0xb36bff).setDepth(depth));
+        objs.push(this.add.text(640, 135, "Your cards for this game", textStyle(28, '#ffe680')).setOrigin(0.5).setDepth(depth + 1));
+
+        // Big copies of your role and character
+        for (const [card, x] of [[me.role, 340], [me.character, 520]]) {
+            const big = new CardSprite(x, 315, card, depth + 1, this, 2.6);
+            big.setDraggable(false, true);
+            big.specEmitter.on('hover', this.showTooltip, this);
+            big.specEmitter.on('unhover', this.hideTooltip, this);
+            objs.push(big);
+        }
+
+        const goal = {
+            Grandmaster: "You're the Grandmaster. Everyone knows it. Find and destroy the Necromancer.",
+            Sorcerer: "You're a Sorcerer. Protect the Grandmaster and destroy the Necromancer.",
+            Necromancer: "You're the Necromancer. Kill the Grandmaster without getting caught.",
+        }[me.role.name] || me.role.description;
+        const ch = me.character;
+        const text = `${goal}\n\nYou're playing as ${ch.name}.\n${ch.ability}: ${(ch.abilityText || '').replace(/\n/g, ' ')}\n\nHover the other players' cards to see who they're playing as.`;
+        objs.push(this.add.text(640, 175, text, { ...textStyle(18), align: 'left', wordWrap: { width: 380 } }).setOrigin(0, 0).setDepth(depth + 1));
+
+        this.readyButton = makeButton(this, 830, 445, 220, 50, "Ready", () => {
+            client.emit('ready');
+            this.readyButton.setEnabled(false);
+            this.readyButton.text.setText("Ready!");
+        });
+        this.readyButton.setDepth(depth + 2);
+        objs.push(this.readyButton.rect, this.readyButton.text);
+        this.waitingText = this.add.text(640, 478, "", textStyle(16, '#cfa8ff')).setOrigin(0.5).setDepth(depth + 1);
+        objs.push(this.waitingText);
+        this.turnText.setText("Look over your cards, then click Ready");
+    }
+
+    onReadyStatus({ waiting }) {
+        if (!this.waitingText) return;
+        const others = waiting.filter((n) => n != this.mainPlayer?.username);
+        const meReady = !waiting.includes(this.mainPlayer?.username);
+        this.waitingText.setText(others.length ? `Waiting for: ${others.join(', ')}`
+            : meReady ? "" : "Everyone else is ready!");
+    }
+
+    hideSetup() {
+        for (const obj of this.setupObjects || []) obj.destroy();
+        this.setupObjects = null;
+        this.waitingText = null;
+        this.hideTooltip();
     }
 
     /** Lets the tutorial (if any) know what's happening */
@@ -151,6 +215,9 @@ class MainGame extends Phaser.Scene {
     /** What happens when a played card reaches its target */
     landEffects(play) {
         const fx = this.fx;
+        for (const name of play.saved || []) {
+            this.time.delayedCall(250, () => fx.popText(name, 'Nine Lives!', '#ffe680'));
+        }
         switch (play.cardname) {
             case 'Bolt':
                 if (play.dodged) fx.popText(play.target, 'dodged!', '#a8d8ff');
@@ -274,9 +341,15 @@ class MainGame extends Phaser.Scene {
             name: sprite.card.name,
             targets,
         });
-        if (sprite.card.oncePerTurn) this.playedThisTurn.add(sprite.card.name);
+        if (sprite.card.oncePerTurn) this.playedThisTurn.set(sprite.card.name, (this.playedThisTurn.get(sprite.card.name) || 0) + 1);
         this.notify('card played', { card: sprite.card, targets });
         this.removeCard(sprite.index);
+    }
+
+    /** How many of a once-per-turn card we can play (Lilium's Quick Draw) */
+    limitFor(card) {
+        if (card.name == 'Bolt') return this.mainPlayer.character?.boltsPerTurn ?? 1;
+        return 1;
     }
 
     /** Which living opponent (if any) a card was dropped on */
@@ -301,8 +374,9 @@ class MainGame extends Phaser.Scene {
             return done();
         }
 
-        if (card.oncePerTurn && this.playedThisTurn.has(card.name)) {
-            if (sprite.y < PLAY_LINE_Y) this.quickTextDisplay(`Only one ${card.name} per turn!`);
+        if (card.oncePerTurn && (this.playedThisTurn.get(card.name) || 0) >= this.limitFor(card)) {
+            const limit = this.limitFor(card);
+            if (sprite.y < PLAY_LINE_Y) this.quickTextDisplay(`Only ${limit == 1 ? 'one' : limit} ${card.name}${limit == 1 ? '' : 's'} per turn!`);
             return done();
         }
 

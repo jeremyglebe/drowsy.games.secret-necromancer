@@ -40,8 +40,16 @@ export default class Player {
     /** Applies damage reduced by defense. Returns damage actually taken. */
     takeDamage(amount) {
         this.calcStats();
-        const damage = amount - Math.ceil(amount * this.defense);
+        let damage = amount - Math.ceil(amount * this.defense);
+        // Tiny's Thick Skin
+        damage = Math.max(0, damage - (this.character?.damageReduction ?? 0));
         this.health -= damage;
+        // Professor Mittens' Nine Lives (well, two)
+        if (this.health <= 0 && this.character?.nineLives && !this.usedNineLives) {
+            this.usedNineLives = true;
+            this.health = 1;
+            this.justSaved = true;
+        }
         return damage;
     }
 }

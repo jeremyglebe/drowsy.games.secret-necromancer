@@ -55,8 +55,8 @@ export default class Field {
         this.necroCard = null;
         /** Set when the game has ended, stops all further turns */
         this.over = false;
-        /** Names of once-per-turn cards already played this turn */
-        this.playedThisTurn = new Set();
+        /** How many of each once-per-turn card were played this turn */
+        this.playedThisTurn = new Map();
 
         this.charDeck = CharDeck();
         this.mainDeck = MainDeck();
@@ -172,7 +172,7 @@ export default class Field {
             return true;
         }
 
-        if (card.oncePerTurn && this.playedThisTurn.has(card.name)) return false;
+        if (card.oncePerTurn && (this.playedThisTurn.get(card.name) || 0) >= this.limitFor(player, card)) return false;
 
         let result = {};
         if (card.type == 'item') {
@@ -187,7 +187,7 @@ export default class Field {
                 if (player.role.name == 'Thrall' && target.role.name == 'Necromancer') return false;
             }
             result = card.activate(this, username, targets) || {};
-            if (card.oncePerTurn) this.playedThisTurn.add(card.name);
+            if (card.oncePerTurn) this.playedThisTurn.set(card.name, (this.playedThisTurn.get(card.name) || 0) + 1);
             player.hand.splice(index, 1);
             this.discardCard(card);
         }
@@ -199,6 +199,7 @@ export default class Field {
             caster: username,
             target: card.targetType == 'player' ? targets : null,
             ...result,
+            saved: this.collectSaves(),
         });
         return true;
     }
@@ -244,10 +245,29 @@ export default class Field {
                 description: this.necroCard.description,
                 caster: NECRO_PHASE,
                 target: this.necroCard.target,
+                saved: this.collectSaves(),
             });
         }
         this.necroCard = null;
         setTimeout(() => this.nextTurn(), this.necroPhaseDelay);
+    }
+
+    /** How many of a once-per-turn card this player may play (Lilium gets 2 Bolts) */
+    limitFor(player, card) {
+        if (card.name == 'Bolt') return player.character?.boltsPerTurn ?? 1;
+        return 1;
+    }
+
+    /** Names of anyone Nine Lives just saved (and forget about it) */
+    collectSaves() {
+        const saved = [];
+        for (const [name, player] of Object.entries(this.players)) {
+            if (player.justSaved) {
+                saved.push(name);
+                delete player.justSaved;
+            }
+        }
+        return saved;
     }
 
     /**
@@ -280,7 +300,9 @@ export default class Field {
             this.doNecromancy();
             return;
         }
-        this.sendCard(current);
+        // Lord Bacon's Old Money draws extra
+        const draws = this.players[current].character?.drawsPerTurn ?? 1;
+        for (let i = 0; i < draws; i++) this.sendCard(current);
         if (this.players[current].role.name == 'Necromancer') {
             this.sendNecromancy(current);
         }

@@ -10,7 +10,8 @@ export default class Fireball extends Spell {
         source?.calcStats();
         const damage = 10 + (source?.focus ?? 0);
         for (const [name, player] of Object.entries(field.players)) {
-            if (name != caster && player.health > 0) {
+            // Ember is Fireproof
+            if (name != caster && player.health > 0 && !player.character?.fireproof) {
                 player.takeDamage(damage);
             }
         }

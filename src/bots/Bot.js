@@ -84,6 +84,8 @@ export default class Bot {
         s.on('your player', (player) => {
             this.me = player;
             this.hand = player.hand.slice();
+            // Bots don't need long to read their cards
+            setTimeout(() => this.socket.emit('ready'), Math.min(this.delay, 800));
         });
         s.on('your new card', (card) => this.hand.push(card));
         s.on('sync', ({ field, player }) => {
@@ -131,6 +133,8 @@ export default class Bot {
     get name() { return this.me?.username; }
     get role() { return this.me?.role?.name; }
     get isNecro() { return this.role == 'Necromancer'; }
+    /** Lilium gets two Bolts a turn */
+    get boltsPerTurn() { return this.me?.character?.boltsPerTurn ?? 1; }
 
     hp(name) {
         return this.players[name]?.health ?? 0;
@@ -275,7 +279,7 @@ export default class Bot {
         const gm = this.grandmaster;
         const target = this.alive.has(gm) ? gm
             : this.others().filter((n) => n != this.master && !this.thralls.has(n))[0];
-        if (target) await this.play('Bolt', target);
+        for (let b = 0; b < this.boltsPerTurn && target; b++) await this.play('Bolt', target);
         // Fireballs are fine as long as they won't finish off our master
         const masterHp = this.hp(this.master);
         if (masterHp > 15 && chance(0.7)) await this.play('Fireball');
@@ -289,9 +293,14 @@ export default class Bot {
         const isGM = this.name == this.grandmaster;
         const gmHp = this.hp(this.grandmaster);
 
-        // Bolt our top suspect if we're fairly sure, or sometimes as a probe
-        if (certainty >= paranoia || chance(aggression * 0.4)) {
-            await this.play('Bolt', suspect);
+        // Bolt our top suspect if we're fairly sure, or sometimes as a probe.
+        // (Lilium can follow up with a second one.)
+        for (let b = 0; b < this.boltsPerTurn; b++) {
+            const [target] = this.suspects();
+            if (!target) break;
+            if (b == 0 ? (certainty >= paranoia || chance(aggression * 0.4)) : this.suspicion[target] >= paranoia) {
+                await this.play('Bolt', target);
+            }
         }
 
         // Fireball hurts the Grandmaster too, so think about it
@@ -358,7 +367,7 @@ export default class Bot {
         const sorcerers = this.others().filter((n) => n != gm && !this.thralls.has(n));
         const framed = sorcerers.sort((a, b) => this.publicSuspicion[b] - this.publicSuspicion[a])[0];
         if (framed && this.publicSuspicion[framed] >= 1) {
-            await this.play('Bolt', framed);
+            for (let b = 0; b < this.boltsPerTurn; b++) await this.play('Bolt', framed);
         } else {
             const attacker = sorcerers.sort((a, b) => (this.hurtMe[b] || 0) - (this.hurtMe[a] || 0))[0];
             if (attacker && (this.hurtMe[attacker] || chance(this.personality.aggression * 0.5))) {

@@ -34,8 +34,10 @@ class Connect extends Phaser.Scene {
         this.codeInput.style.textTransform = 'uppercase';
         this.joinButton = makeButton(this, 960, 470, 140, 60, "Join", () => this.joinClicked());
 
-        this.tutorialButton = makeButton(this, 640, 575, 420, 60, "How to Play (Tutorial)",
+        this.tutorialButton = makeButton(this, 480, 575, 420, 60, "How to Play (Tutorial)",
             () => this.tutorialClicked(), 0xb36bff);
+        this.galleryButton = makeButton(this, 905, 575, 280, 60, "Browse Cards",
+            () => this.scene.start('Gallery'), 0xb36bff);
 
         this.status = this.add.text(640, 660, inviteCode ? `Invited to room ${inviteCode} - enter a name and Join!` : "Needs 4-5 players. One person hosts, the rest join with the room code.",
             textStyle(20, '#ffe680')).setOrigin(0.5);
@@ -55,7 +57,7 @@ class Connect extends Phaser.Scene {
     }
 
     setBusy(busy, message) {
-        for (const b of [this.hostButton, this.joinButton, this.tutorialButton]) b.setEnabled(!busy);
+        for (const b of [this.hostButton, this.joinButton, this.tutorialButton, this.galleryButton]) b.setEnabled(!busy);
         if (message) this.status.setText(message);
     }
 

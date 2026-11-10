@@ -4,6 +4,7 @@ import Connect from './scenes/Connect.js';
 import Lobby from './scenes/Lobby.js';
 import MainGame from './scenes/MainGame.js';
 import Endingscreen from './scenes/Endingscreen.js';
+import Gallery from './scenes/Gallery.js';
 
 /** Configuration object for the main Phaser game object */
 const gameConfig = {
@@ -23,7 +24,7 @@ const gameConfig = {
         createContainer: true,
     },
     backgroundColor: '#000000',
-    scene: [Boot, Connect, Lobby, MainGame, Endingscreen],
+    scene: [Boot, Connect, Lobby, MainGame, Endingscreen, Gallery],
 };
 
 const game = new Phaser.Game(gameConfig);

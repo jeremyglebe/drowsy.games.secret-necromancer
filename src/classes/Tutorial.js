@@ -26,8 +26,8 @@ export default class Tutorial {
                 text: "Welcome to Secret Necromancer!\n\nOne player is secretly the Necromancer. Everyone else serves the light... or so they claim.",
             },
             {
-                text: "This is your secret role. You're a Sorcerer: protect the Grandmaster and destroy the Necromancer.\n\nHover any card to read it. Right-click to enlarge it.",
-                highlight: () => [scene.mainPlayer.roleSprite.getBounds()],
+                text: () => `This is your secret role. You're a Sorcerer: protect the Grandmaster and destroy the Necromancer.\n\nNext to it is your character, ${scene.mainPlayer.character.name}, who has a special ability. Hover any card to read it.`,
+                highlight: () => [scene.mainPlayer.roleSprite.getBounds(), scene.mainPlayer.characterSprite.getBounds()],
             },
             {
                 text: () => `The Grandmaster is public: ${gm()}.\n\nIf the Grandmaster dies, the Necromancer wins. If the Necromancer dies, everyone else wins.`,
@@ -43,7 +43,7 @@ export default class Tutorial {
                 waitFor: (event, payload) => event == 'card played' && payload.card.name == 'Bolt',
             },
             {
-                text: "Zap! You only get one Bolt per turn, but every other card is unlimited.\n\nFireball hits EVERY other player for 10, the Grandmaster too. To cast it, drag it into the middle of the table.",
+                text: "Zap! Most characters only get one Bolt per turn, but every other card is unlimited.\n\nFireball hits EVERY other player for 10, the Grandmaster too. To cast it, drag it into the middle of the table.",
                 highlight: () => [scene.playZone.getBounds()],
             },
             {

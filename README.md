@@ -12,7 +12,7 @@ I don't plan on touching it again after this.
 
 You need 4 or 5 people. One person clicks Host a Game and sends everyone the room code (or the invite link in the lobby). Everyone else types in the code and clicks Join. The host starts the game once everyone's in. If you're short on people, the host can fill empty seats with bots. They're not geniuses, but they do try to figure out who the Necromancer is. The host can also slow the bots down, or make played cards hang around in the middle of the table longer, if people need more time to see what's going on.
 
-If you've never played, there's a tutorial on the title screen.
+If you've never played, there's a tutorial on the title screen, and a Browse Cards button if you just want to look through everything first.
 
 ## Rules
 
@@ -24,9 +24,19 @@ The Necromancer is secret. They win if the Grandmaster dies.
 
 Everyone else is a Sorcerer. Sorcerers are on the Grandmaster's side, but nobody knows who they are, so from the outside a Sorcerer looks exactly like the Necromancer.
 
+You also get a random character, and like in Bang! each one has an ability:
+
+- Lord Bacon: draws 2 cards a turn.
+- Lilium: can cast 2 Bolts a turn.
+- Tiny: takes 3 less damage from everything.
+- Professor Mittens: survives the first time they'd die, with 1 HP.
+- Ember: Fireballs don't hurt them.
+
+Before any cards get dealt, everyone gets to look at their role and character (and everyone else's character) and click Ready.
+
 On your turn you draw a card, play whatever you want, and end your turn. You play cards by dragging them:
 
-- Bolt: drag it onto a player for 10-20 damage. One per turn.
+- Bolt: drag it onto a player for 10-20 damage. One per turn (two for Lilium).
 - Fireball: drag it into the middle of the table. 10 damage to every other player, Grandmaster included, so be careful.
 - Shield: drag it onto your own character card. Blocks 15% of damage, stacks up to 60%.
 - Robe: same deal, gives you a 20% chance to dodge Bolts. Stacks up to 60%.

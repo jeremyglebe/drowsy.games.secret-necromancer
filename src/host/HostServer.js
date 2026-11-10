@@ -15,6 +15,8 @@
  * 'start game': client-safe field (to all)
  * 'your player': the client's full Player object (to each client)
  * 'the gmaster bro reveals himself': username of the Grandmaster (to all)
+ * 'ready status': { ready: string[], waiting: string[] } during setup (to all)
+ * 'all ready': everyone readied up, cards are about to be dealt (to all)
  * 'sync': { field, player } (to each client, periodically)
  * 'death': username (to all)
  * 'game over': { winners: string[], roles: {username: roleName} } (to all)
@@ -24,6 +26,7 @@
  *  Host Listens For |
  * ------------------|
  * 'start': from the VIP when they want to start the game
+ * 'ready': a player has looked over their role and character
  * 'play spell' / 'turn end': see Field.js
  */
 
@@ -110,6 +113,7 @@ export default class HostServer {
 
         endpoint.on('disconnect', () => this.onDisconnect(socket));
         endpoint.on('start', () => this.onStart(socket));
+        endpoint.on('ready', () => this.onReady(socket));
         endpoint.on('play spell', (info) => {
             if (this.field && this.field.onPlaySpell(socket.username, info)) {
                 this.update();
@@ -150,6 +154,11 @@ export default class HostServer {
                 player.health = 0;
                 this.update();
             }
+            // Don't keep everyone waiting on someone who left during setup
+            if (!this.started) {
+                this.broadcastReady();
+                this.beginIfReady();
+            }
         }
     }
 
@@ -174,9 +183,35 @@ export default class HostServer {
         for (const s of Object.values(this.sockets)) {
             s.endpoint.emit('your player', field.players[s.username]);
         }
-        field.dealHands();
         const gm = field.findRole('Grandmaster');
         if (gm) this.emit('the gmaster bro reveals himself', gm);
+
+        // Everyone gets a moment with their role and character before any
+        // cards are dealt. Play starts once everyone has readied up.
+        this.ready = new Set();
+        this.started = false;
+        this.broadcastReady();
+    }
+
+    onReady(socket) {
+        if (!this.field || this.started) return;
+        this.ready.add(socket.username);
+        this.broadcastReady();
+        this.beginIfReady();
+    }
+
+    broadcastReady() {
+        const waiting = Object.values(this.sockets).map((s) => s.username).filter((n) => !this.ready.has(n));
+        this.emit('ready status', { ready: [...this.ready], waiting });
+    }
+
+    beginIfReady() {
+        if (this.started || this.field.over) return;
+        if (!Object.values(this.sockets).every((s) => this.ready.has(s.username))) return;
+        this.started = true;
+        this.emit('all ready');
+        const field = this.field;
+        field.dealHands();
         // The first nextTurn() rotates, so start "before" the first player
         field.turnQueue.unshift(field.turnQueue.pop());
         field.nextTurn();
@@ -226,10 +261,12 @@ export default class HostServer {
             field.over = true;
             clearInterval(this.syncTimer);
             const roles = {};
+            const characters = {};
             for (const [name, player] of Object.entries(field.players)) {
                 roles[name] = player.role.name;
+                characters[name] = player.character?.name;
             }
-            this.emit('game over', { winners, roles });
+            this.emit('game over', { winners, roles, characters });
             return;
         }
 

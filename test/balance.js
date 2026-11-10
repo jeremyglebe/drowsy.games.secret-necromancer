@@ -42,10 +42,19 @@ function playGame(numPlayers) {
 }
 
 const stats = {};
+/** character -> { good: [wins, games], necro: [wins, games] } */
+const byCharacter = {};
 for (const n of [4, 5]) {
     const s = stats[n] = { games: 0, necroWins: 0, raised: 0, rounds: 0, goodBolts: 0, goodBoltsOnNecro: 0, necroBolts: 0, necroBoltsOnGM: 0 };
     for (let i = 0; i < GAMES / 2; i++) {
-        const { winners, roles, plays, rounds } = await playGame(n);
+        const { winners, roles, plays, rounds, characters } = await playGame(n);
+        for (const [name, character] of Object.entries(characters || {})) {
+            const c = byCharacter[character] ??= { good: [0, 0], necro: [0, 0] };
+            const side = roles[name] == 'Necromancer' ? c.necro : roles[name] == 'Thrall' ? null : c.good;
+            if (!side) continue;
+            side[1]++;
+            if (winners.includes(name)) side[0]++;
+        }
         const necro = Object.keys(roles).find((k) => roles[k] == 'Necromancer');
         s.games++;
         s.rounds += rounds;
@@ -72,5 +81,9 @@ for (const [n, s] of Object.entries(stats)) {
     console.log(`  Thralls raised per game: ${(s.raised / s.games).toFixed(2)}`);
     console.log(`  Good Bolts on the Necro: ${pct(s.goodBoltsOnNecro, s.goodBolts)} (random would be ${pct(1, n - 2)})`);
     console.log(`  Necro Bolts on the GM:   ${pct(s.necroBoltsOnGM, s.necroBolts)}`);
+}
+console.log('\nWin rate by character (as a good guy / as the Necromancer):');
+for (const [character, c] of Object.entries(byCharacter).sort()) {
+    console.log(`  ${character.padEnd(18)} ${pct(...c.good).padStart(4)} of ${String(c.good[1]).padStart(4)}   /   ${pct(...c.necro).padStart(4)} of ${String(c.necro[1]).padStart(3)}`);
 }
 process.exit(0);
