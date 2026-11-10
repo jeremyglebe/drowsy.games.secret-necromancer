@@ -47,6 +47,9 @@ class Gallery extends Phaser.Scene {
                 sprite.setDraggable(false, true);
                 sprite.specEmitter.on('hover', this.showInfo, this);
                 sprite.specEmitter.on('unhover', this.hideInfo, this);
+                // The enlarged card covers the info bar, so get it out of the way
+                sprite.specEmitter.on('enlarge', () => this.setInfoVisible(false));
+                sprite.specEmitter.on('shrink', () => this.setInfoVisible(true));
             });
         }
 
@@ -56,6 +59,11 @@ class Gallery extends Phaser.Scene {
         this.hideInfo();
 
         makeButton(this, 110, 40, 160, 46, "Back", () => this.scene.start("Connect"));
+    }
+
+    setInfoVisible(visible) {
+        this.infoBg.setVisible(visible);
+        this.info.setVisible(visible);
     }
 
     showInfo(sprite) {

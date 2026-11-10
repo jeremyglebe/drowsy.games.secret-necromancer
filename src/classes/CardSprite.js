@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 
 /** Card art is 53x85 pixels; these are positions within that art */
 const NAME_Y = -35;        // center of the name banner, relative to card center
-const DESC_X = -22;        // left edge of the description box
+const DESC_X = -20;        // left edge of the inside of the description box
+const DESC_WIDTH = 40;     // usable width inside the description box
 const DESC_Y = 18;         // top edge of the description box
 const ENLARGED_SCALE = 7;
 
@@ -82,6 +83,10 @@ class CardSprite {
             this.nameText.setFontSize(Math.max(1, 6 * scale * maxWidth / this.nameText.width));
         }
         this.descripText.setPosition(x + DESC_X * scale, y + DESC_Y * scale).setFontSize(Math.max(1, 3.3 * scale));
+        // Long lines shrink to stay inside the box
+        if (this.descripText.width > DESC_WIDTH * scale) {
+            this.descripText.setFontSize(Math.max(1, 3.3 * scale * DESC_WIDTH * scale / this.descripText.width));
+        }
     }
 
     get x() { return this.graphic.x; }
@@ -157,6 +162,7 @@ class CardSprite {
 
     /** Centers and enlarges the card so it can be read */
     enlarge() {
+        this.specEmitter.emit('enlarge', this);
         this.large = true;
         CardSprite.anyCardIsEnlarged = true;
         this.scene.input.setDraggable(this.graphic, false);
@@ -166,6 +172,7 @@ class CardSprite {
 
     /** Returns the card to normal after enlarge */
     shrink() {
+        this.specEmitter.emit('shrink', this);
         this.large = false;
         CardSprite.anyCardIsEnlarged = false;
         this.restoreDefaultPos();
