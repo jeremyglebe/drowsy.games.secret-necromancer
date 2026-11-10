@@ -6,15 +6,13 @@ const DESC_X = -20;        // left edge of the inside of the description box
 const DESC_WIDTH = 40;     // usable width inside the description box
 const DESC_Y = 18;         // top edge of the description box
 const ENLARGED_SCALE = 7;
-/** Mana cost badge, top left corner */
-const COST_X = -23;
-const COST_Y = -38;
-/**
- * Names stay centered. With a badge, they get less room on both sides so
- * they never run under it (the badge reaches ~18 card pixels from center).
- */
-const NAME_ROOM = 40;
-const NAME_ROOM_WITH_BADGE = 34;
+/** Mana cost badge, bottom center (sitting on the bottom of the box) */
+const COST_X = 0;
+const COST_Y = 39;
+const COST_STEP = 7;
+/** How tall the description can get, with and without the badge in the way */
+const DESC_HEIGHT = 21;
+const DESC_HEIGHT_WITH_BADGE = 16;
 
 /**
  * The client side version of a card: the card data from the host plus the
@@ -78,16 +76,11 @@ class CardSprite {
             resolution: 3,
         }).setOrigin(0, 0);
 
-        // Mana cost badge (only cards you can cast have one)
-        if (this.card.cost != null) {
-            this.costIcon = this.scene.add.sprite(0, 0, "icon_crystal");
-            this.costText = this.scene.add.text(0, 0, String(this.card.cost), {
-                fontFamily: 'monospace',
-                fontStyle: 'bold',
-                color: '#ffffff',
-                stroke: '#000000',
-                resolution: 3,
-            }).setOrigin(0.5, 0.5);
+        // Mana cost: one crystal per point, along the bottom of the card
+        // (free cards and cards you can't cast get none)
+        this.costIcons = [];
+        for (let i = 0; i < (this.card.cost ?? 0); i++) {
+            this.costIcons.push(this.scene.add.sprite(0, 0, "icon_crystal"));
         }
 
         this.layout(x, y, this.scale);
@@ -95,30 +88,28 @@ class CardSprite {
     }
 
     get badge() {
-        return this.costIcon ? [this.costIcon, this.costText] : [];
+        return this.costIcons;
     }
 
     /** Positions and sizes the art and text for a given location and scale */
     layout(x, y, scale) {
         this.graphic.setPosition(x, y).setScale(scale);
         this.nameText.setPosition(x, y + NAME_Y * scale).setFontSize(Math.max(1, 6 * scale));
-        // Long names (Professor Mittens, Healing Potion) shrink to fit the
-        // banner (the inside of the narrowest one, on spell cards, is ~40
-        // card pixels) and to stay clear of the cost badge
-        const maxWidth = (this.costIcon ? NAME_ROOM_WITH_BADGE : NAME_ROOM) * scale;
+        // Long names (Professor Mittens) shrink to fit the banner
+        // (the inside of the narrowest banner, on spell cards, is ~40 card pixels)
+        const maxWidth = 40 * scale;
         if (this.nameText.width > maxWidth) {
             this.nameText.setFontSize(Math.max(1, 6 * scale * maxWidth / this.nameText.width));
         }
         this.descripText.setPosition(x + DESC_X * scale, y + DESC_Y * scale).setFontSize(Math.max(1, 3.3 * scale));
-        // Long lines shrink to stay inside the box
-        if (this.descripText.width > DESC_WIDTH * scale) {
-            this.descripText.setFontSize(Math.max(1, 3.3 * scale * DESC_WIDTH * scale / this.descripText.width));
-        }
-        if (this.costIcon) {
-            this.costIcon.setPosition(x + COST_X * scale, y + COST_Y * scale).setScale(scale * 0.34);
-            this.costText.setPosition(x + COST_X * scale, y + (COST_Y + 1) * scale)
-                .setFontSize(Math.max(1, 6 * scale)).setStroke('#000000', Math.max(1, 1.1 * scale));
-        }
+        // Long or tall text shrinks to stay inside the box (and above the badge)
+        const maxHeight = (this.costIcons?.length ? DESC_HEIGHT_WITH_BADGE : DESC_HEIGHT) * scale;
+        const fit = Math.min(1, DESC_WIDTH * scale / this.descripText.width, maxHeight / this.descripText.height);
+        if (fit < 1) this.descripText.setFontSize(Math.max(1, 3.3 * scale * fit));
+        const n = this.costIcons.length;
+        this.costIcons.forEach((icon, i) => {
+            icon.setPosition(x + (COST_X + (i - (n - 1) / 2) * COST_STEP) * scale, y + COST_Y * scale).setScale(scale * 0.24);
+        });
     }
 
     get x() { return this.graphic.x; }
