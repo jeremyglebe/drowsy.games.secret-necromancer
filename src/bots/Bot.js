@@ -39,6 +39,16 @@ const COSTS = {
 const rand = (min, max) => min + Math.random() * (max - min);
 const chance = (p) => Math.random() < p;
 
+/** Knobs for the Necromancer's play style (handy when tuning balance) */
+export const TUNING = {
+    /** Chance to Bolt the GM outright when the table isn't looking at us */
+    sneakBolt: 0,
+    /** Heat below which a sneaky GM Bolt seems worth it */
+    sneakHeat: 0,
+    /** Chance to brew anyway when it would eat our Fireball money */
+    brewOverFireball: 1,
+};
+
 export function randomPersonality() {
     return {
         /** How willing to act on weak evidence (probing Bolts, Fireballs) */
@@ -459,7 +469,10 @@ export default class Bot {
         // Hurts us too, but nobody can tell who summoned it
         else if (this.find('Eldritch Horror') >= 0 && !this.horror && gmAlive && myHp > 12
             && this.canPlay('Eldritch Horror') && chance(0.5)) ritual = 'Eldritch Horror';
-        else if (this.find('Witch Brew') >= 0) ritual = 'Witch Brew';
+        // Witch Brew is nice, but Fireballs are what actually kill the GM, so
+        // don't let the Brew eat the mana for one
+        else if (this.find('Witch Brew') >= 0 && (this.find('Fireball') < 0 || this.mana >= 3
+            || chance(TUNING.brewOverFireball))) ritual = 'Witch Brew';
 
         if (ritual && this.canPlay(ritual)) {
             if (ritual == 'Raise Dead') await this.play('Raise Dead', corpse);
@@ -475,13 +488,13 @@ export default class Bot {
     }
 
     async brew(gm, gmAlive, gmHp, gmTakes) {
-        // Witch Brew is anonymous, so nobody can pin it on us. It drains mana
-        // and cards: mostly aimed at whoever has been coming after us, now
-        // and then at the GM to stop them healing up.
+        // Witch Brew is anonymous, so nobody can pin it on us. It's our best
+        // way to hurt the GM, but now and then it goes to whoever has been
+        // coming after us instead (and drains their mana).
         const threat = this.others().filter((n) => n != gm && !this.thralls.has(n))
             .sort((a, b) => (this.hurtMe[b] || 0) - (this.hurtMe[a] || 0))[0];
         const victim = !gmAlive ? threat
-            : (!threat || chance(0.4)) ? gm : threat;
+            : (!threat || gmHp <= gmTakes(7) || chance(0.75)) ? gm : threat;
         if (victim) await this.play('Witch Brew', victim);
     }
 
@@ -512,6 +525,13 @@ export default class Bot {
         // healthy enough to survive it
         if (this.horror && this.horror.health > 10 && this.heat >= 0.8) {
             await this.play('Bolt', HORROR);
+            return;
+        }
+
+        // Somebody has to actually hurt the Grandmaster. If the table is busy
+        // suspecting other people, take the shot.
+        if (this.heat < TUNING.sneakHeat && chance(TUNING.sneakBolt)) {
+            for (let b = 0; b < this.boltsPerTurn; b++) await this.play('Bolt', gm);
             return;
         }
 

@@ -67,7 +67,7 @@ export default class Tutorial {
                 panelY: 370,
             },
             {
-                text: "Necromancy phase! Once per round, the Necromancer's secret ritual takes effect.\n\nWitch Brew drains its victim's mana and 2 cards. Eldritch Horror summons a monster that mauls someone every round until it's destroyed. Raise Dead brings back a dead player as a Thrall.\n\nOh, and the Necromancer's Bolts are free. Nobody can tell.",
+                text: "Necromancy phase! Once per round, the Necromancer's secret ritual takes effect.\n\nWitch Brew hits its victim for 2d6 and drains their mana. Eldritch Horror summons a monster that mauls someone every round until it's destroyed. Raise Dead brings back a dead player as a Thrall.\n\nOh, and the Necromancer's Bolts are free. Nobody can tell.",
                 panelY: 370,
             },
             {

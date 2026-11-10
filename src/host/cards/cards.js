@@ -108,8 +108,8 @@ export const CARDS = {
 
     'Witch Brew': {
         type: 'necromancy', target: 'player', cost: 1, count: 110,
-        text: "Victim loses all\ntheir banked mana\nand 2 random cards.",
-        effects: [DrainMana(Target), Discard(Target, 2)],
+        text: "Deal 2d6 damage.\nThe victim also\nloses all their\nbanked mana.",
+        effects: [Damage(Target, '2d6'), DrainMana(Target)],
     },
     'Raise Dead': {
         type: 'necromancy', target: 'dead', cost: 2, count: 40,
