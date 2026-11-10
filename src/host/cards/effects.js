@@ -69,18 +69,19 @@ export const Damage = (selector, dice, tags = {}) => (ctx) => {
     if (!victims.length) return;
     const source = caster && field.players[caster];
     const rolled = rollFor(ctx, dice, 'damage');
-    const amount = rolled.total + (source ? source.focus : 0);
+    const amount = rolled.total + (source ? source.power : 0);
     for (const name of victims) {
         if (name == ENCOUNTER) {
             if (field.damageEncounter(amount, caster)) ctx.result.slain = true;
             continue;
         }
         const victim = field.players[name];
-        // Robes: dodge on a 6, or 5+ with two, 4+ with three
-        if (tags.dodgeable && victim.dodge > 0) {
+        // Evasion 1 dodges on a 6, 2 on a 5+, 3 on a 4+
+        if (tags.dodgeable && victim.evasion > 0) {
             const dodge = d6();
-            ctx.result.rolls.push({ spec: 'd6', dice: [dodge], bonus: 0, total: dodge, label: 'dodge', need: 7 - victim.dodge });
-            if (dodge >= 7 - victim.dodge) {
+            const need = 7 - victim.evasion;
+            ctx.result.rolls.push({ spec: 'd6', dice: [dodge], bonus: 0, total: dodge, label: 'dodge', need });
+            if (dodge >= need) {
                 ctx.result.dodged = true;
                 continue;
             }
@@ -150,11 +151,18 @@ export const DrainMana = (selector) => (ctx) => {
     }
 };
 
-/** Puts the card in front of the caster, where its stats apply */
-export const Equip = () => (ctx) => {
-    const player = ctx.field.players[ctx.caster];
-    player.items.push(ctx.card);
-    player.calcStats();
+/**
+ * Puts the card in front of the caster, where its passives apply for as
+ * long as it stays there: Equip(Evasion(1))
+ */
+export const Equip = (...passives) => {
+    const effect = (ctx) => {
+        const player = ctx.field.players[ctx.caster];
+        player.items.push(ctx.card);
+        player.calcStats();
+    };
+    effect.passives = passives;
+    return effect;
 };
 
 /** Brings a dead player back as a Thrall */

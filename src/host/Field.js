@@ -43,6 +43,7 @@ import MainDeck from './cards/decks/MainDeck.js';
 import NecroDeck from './cards/decks/NecroDeck.js';
 import { costFor } from './cards/costs.js';
 import { makeCard, runCard } from './cards/cards.js';
+import { perTurnLimit, drawsPerTurn } from './cards/passives.js';
 import { ENCOUNTER } from './cards/effects.js';
 
 export const NECRO_PHASE = '##NECRO##';
@@ -344,11 +345,10 @@ export default class Field {
 
     /** How many of a once-per-turn card this player may play (Lilium gets 2 Bolts) */
     limitFor(player, card) {
-        if (card.name == 'Bolt') return player.character?.boltsPerTurn ?? 1;
-        return 1;
+        return perTurnLimit(player, card);
     }
 
-    /** Names of anyone Nine Lives just saved (and forget about it) */
+    /** Names of anyone a Death Ward just saved (and forget about it) */
     collectSaves() {
         const saved = [];
         for (const [name, player] of Object.entries(this.players)) {
@@ -401,7 +401,7 @@ export default class Field {
         this.players[current].mana += this.players[current].income;
         this.sendMana(current);
         // Lord Bacon's Old Money draws extra
-        const draws = this.players[current].character?.drawsPerTurn ?? 1;
+        const draws = drawsPerTurn(this.players[current]);
         for (let i = 0; i < draws; i++) this.sendCard(current);
         if (this.players[current].role.name == 'Necromancer') {
             this.sendNecromancy(current);

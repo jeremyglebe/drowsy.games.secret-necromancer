@@ -1,11 +1,6 @@
 import Phaser from 'phaser';
 import CardSprite from '../classes/CardSprite.js';
 import { makeButton, textStyle } from '../classes/UI.js';
-import Bacon from '../host/cards/characters/Bacon.js';
-import Lilium from '../host/cards/characters/Lilium.js';
-import Tiny from '../host/cards/characters/Tiny.js';
-import Mittens from '../host/cards/characters/Mittens.js';
-import Ember from '../host/cards/characters/Ember.js';
 import Grandmaster from '../host/roles/Grandmaster.js';
 import Sorcerer from '../host/roles/Sorcerer.js';
 import Necromancer from '../host/roles/Necromancer.js';
@@ -20,7 +15,7 @@ const STEP = 92;
 
 /** Every card in the game, laid out so you can read them before playing */
 const SECTIONS = [
-    { title: "Characters", y: 170, x: 70, cards: () => [new Bacon(), new Lilium(), new Tiny(), new Mittens(), new Ember()] },
+    { title: "Characters", y: 170, x: 70, cards: () => cardsOfType('character') },
     { title: "Roles", y: 170, x: 700, cards: () => [new Grandmaster(), new Sorcerer(), new Necromancer(), new Thrall()] },
     { title: "Spells", y: 380, x: 70, cards: () => cardsOfType('spell') },
     { title: "Equipment", y: 590, x: 70, cards: () => cardsOfType('item') },

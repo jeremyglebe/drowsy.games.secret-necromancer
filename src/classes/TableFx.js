@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import CardSprite from './CardSprite.js';
 import { textStyle } from './UI.js';
+import { statOf } from '../host/cards/passives.js';
 
 /** Where played cards pause so everyone can see them */
 const STAGE_X = 640;
@@ -88,17 +89,19 @@ export default class TableFx {
      * much damage they block, sword icon with their bonus damage, and how
      * often they dodge. align is 'left', 'right' or 'center'.
      */
-    renderStats(holder, items = [], x, y, align, crystals = 0) {
-        const count = (name) => items.filter((i) => i.name == name).length;
-        const key = [count('Shield'), count('Robe'), count('Wand'), crystals].join();
+    renderStats(holder, player, x, y, align, crystals = 0) {
+        // Totals from the character and equipment passives, so anything that
+        // gives Armor / Evasion / Power shows up, not just Shields and Robes
+        const armor = statOf(player, 'armor'), evasion = statOf(player, 'evasion'), power = statOf(player, 'power');
+        const key = [armor, evasion, power, crystals].join();
         if (holder.statKey == key) return;
         holder.statKey = key;
         holder.statLine?.destroy();
         if (holder.defenseText) holder.defenseText.setText('');
         const parts = [];
-        if (count('Shield')) parts.push(['icon_shield', `-${Math.min(3, count('Shield'))}`]);
-        if (count('Wand')) parts.push(['icon_sword', `+${count('Wand') * 2}`]);
-        if (count('Robe')) parts.push([null, `dodge ${7 - Math.min(3, count('Robe'))}+`]);
+        if (armor) parts.push(['icon_shield', `-${armor}`]);
+        if (power) parts.push(['icon_sword', `+${power}`]);
+        if (evasion) parts.push([null, `dodge ${7 - evasion}+`]);
         // Mana Crystals are public: everyone can see your income
         if (crystals) parts.push(['icon_crystal', `+${crystals}`]);
         if (!parts.length) return;

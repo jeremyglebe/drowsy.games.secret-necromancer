@@ -25,6 +25,7 @@
 
 import { BASE_INCOME } from '../host/Player.js';
 import { costFor } from '../host/cards/costs.js';
+import { perTurnLimit } from '../host/cards/passives.js';
 
 const NECRO_PHASE = '##NECRO##';
 const HORROR = '##ENCOUNTER##';
@@ -169,7 +170,7 @@ export default class Bot {
     get role() { return this.me?.role?.name; }
     get isNecro() { return this.role == 'Necromancer'; }
     /** Lilium gets two Bolts a turn */
-    get boltsPerTurn() { return this.me?.character?.boltsPerTurn ?? 1; }
+    get boltsPerTurn() { return perTurnLimit(this.me, { name: 'Bolt', perTurn: 1 }); }
 
     hp(name) {
         return this.players[name]?.health ?? 0;

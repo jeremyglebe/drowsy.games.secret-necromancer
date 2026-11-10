@@ -2,15 +2,17 @@
  * Every spell, item and dark art in the game. To add a card, add an entry
  * here (and its art in Boot.js). The effects are in effects.js.
  *
- *   type      'spell', 'item', 'necromancy' (Necromancer only), or 'encounter'
- *             (what an encounter does each round, never in a deck)
+ *   type      'character', 'spell', 'item', 'necromancy' (Necromancer only),
+ *             or 'encounter' (what an encounter does each round, never in a
+ *             deck)
  *   target    how you play it: 'player' (drop on someone), 'any' (someone or
  *             yourself), 'self', 'table' (drop in the middle), 'dead' (drop on
  *             a corpse), or 'none' (dark arts with no victim)
  *   cost      mana
  *   perTurn   limit per turn, if any
  *   hitsEncounter  can be dropped on the encounter in the middle
- *   stats     for items: armor, dodge, focus
+ *   passives  for characters: always-on effects from passives.js
+ *             (equipment gets its passives from Equip(...))
  *   count     how many are in the deck
  *   ai        hint for the bots: 'attack', 'heal', 'buff', 'ramp', 'disrupt'
  */
@@ -19,8 +21,37 @@ import {
     Target, Self, Others, Encounter, RandomPlayer,
     Damage, Heal, Discard, Steal, SkipTurn, AddIncome, DrainMana, Equip, Raise, Summon,
 } from './effects.js';
+import { Armor, Evasion, Power, MaxHealth, Immune, PerTurn, Draws, DeathWard } from './passives.js';
 
 export const CARDS = {
+
+    /* Characters (like Bang!, everyone gets one ability) --------------- */
+
+    'Lord Bacon': {
+        type: 'character', count: 3,
+        ability: 'Old Money', abilityText: "draws 2\ncards each turn.", flavor: "It is said he looks\nlike a peanut",
+        passives: [Draws(2)],
+    },
+    'Lilium': {
+        type: 'character', count: 3,
+        ability: 'Quick Draw', abilityText: "can cast\n2 Bolts per turn.", flavor: "It was a name I\nsuppose",
+        passives: [PerTurn('Bolt', 2)],
+    },
+    'Tiny': {
+        type: 'character', count: 3,
+        ability: 'Thick Skin', abilityText: "starts\nwith 1 Armor.", flavor: "All her sisters\nwere 8'9\"",
+        passives: [Armor(1)],
+    },
+    'Professor Mittens': {
+        type: 'character', count: 3,
+        ability: 'Death Ward', abilityText: "the first\ntime they'd die,\nthey're left at 1 HP.", flavor: "Tenured. Nobody\nknows in what.",
+        passives: [DeathWard(1, 1)],
+    },
+    'Ember': {
+        type: 'character', count: 3,
+        ability: 'Fireproof', abilityText: "Fireballs\ndo no damage.", flavor: "Smells faintly of\ntoast",
+        passives: [Immune('fire')],
+    },
 
     /* Spells ---------------------------------------------------------- */
 
@@ -58,19 +89,19 @@ export const CARDS = {
     /* Equipment ------------------------------------------------------- */
 
     'Shield': {
-        type: 'item', target: 'self', cost: 1, count: 8, ai: 'buff', stats: { armor: 1 },
-        text: "Equip: block 1\ndamage from every\nhit. Stacks up to 3.",
-        effects: [Equip()],
+        type: 'item', target: 'self', cost: 1, count: 8, ai: 'buff',
+        text: "Equip: +1 Armor.\nBlocks that much\nfrom every hit.\n(Max 3 Armor.)",
+        effects: [Equip(Armor(1))],
     },
     'Robe': {
-        type: 'item', target: 'self', cost: 1, count: 6, ai: 'buff', stats: { dodge: 1 },
-        text: "Equip: dodge Bolts\non a 6. Each extra\nRobe dodges on one\nmore (up to 3).",
-        effects: [Equip()],
+        type: 'item', target: 'self', cost: 1, count: 6, ai: 'buff',
+        text: "Equip: +1 Evasion.\nDodge Bolts on a\n7 minus Evasion.\n(Max 3 Evasion.)",
+        effects: [Equip(Evasion(1))],
     },
     'Wand': {
-        type: 'item', target: 'self', cost: 1, count: 6, ai: 'buff', stats: { focus: 2 },
-        text: "Equip: your damage\nrolls get +2.\nStacks.",
-        effects: [Equip()],
+        type: 'item', target: 'self', cost: 1, count: 6, ai: 'buff',
+        text: "Equip: +2 Power.\nPower is added to\nyour damage rolls.",
+        effects: [Equip(Power(2))],
     },
 
     /* Dark arts ------------------------------------------------------- */
@@ -110,6 +141,15 @@ const TARGET_TYPES = { player: 'player', any: 'any', self: 'self', table: 'other
 export function makeCard(name) {
     const def = CARDS[name];
     if (!def) throw new Error(`No card named ${name}`);
+    if (def.type == 'character') {
+        return {
+            name,
+            type: 'character',
+            description: `${def.ability}: ${def.abilityText}\n"${def.flavor}"`,
+            ability: def.ability,
+            passives: def.passives.map((p) => ({ ...p })),
+        };
+    }
     const card = {
         name,
         description: def.text,
@@ -117,12 +157,13 @@ export function makeCard(name) {
         targetType: TARGET_TYPES[def.target],
         cost: def.cost ?? 0,
     };
+    const passives = [...(def.passives ?? []), ...def.effects.flatMap((e) => e.passives ?? [])];
+    if (passives.length) card.passives = passives.map((p) => ({ ...p }));
     if (def.perTurn) {
         card.oncePerTurn = true;
         card.perTurn = def.perTurn;
     }
     if (def.hitsEncounter) card.hitsEncounter = true;
-    if (def.stats) card.stats = { ...def.stats };
     if (def.ai) card.ai = def.ai;
     return card;
 }

@@ -7,8 +7,9 @@ import { makeButton, textStyle } from '../classes/UI.js';
 import { costFor } from '../host/cards/costs.js';
 import { CARDS } from '../host/cards/cards.js';
 import { MAX_HEALTH } from '../host/Player.js';
+import { perTurnLimit } from '../host/cards/passives.js';
 
-const hpText = (hp) => `${Math.max(0, hp)}/${MAX_HEALTH}`;
+const hpText = (hp, max = MAX_HEALTH) => `${Math.max(0, hp)}/${max}`;
 
 const NECRO_PHASE = '##NECRO##';
 /** Target name for whatever is in the middle of the table (the Eldritch Horror) */
@@ -263,7 +264,7 @@ class MainGame extends Phaser.Scene {
     landEffects(play) {
         const fx = this.fx;
         for (const name of play.saved || []) {
-            this.time.delayedCall(250, () => fx.popText(name, 'Nine Lives!', '#ffe680'));
+            this.time.delayedCall(250, () => fx.popText(name, 'Death Ward!', '#ffe680'));
         }
         switch (play.cardname) {
             case 'Bolt':
@@ -315,7 +316,7 @@ class MainGame extends Phaser.Scene {
         this.add.text(70, 515, me.username, textStyle(20)).setOrigin(0.5);
         this.add.text(185, 515, "your secret role", textStyle(14, '#ffe680')).setOrigin(0.5);
 
-        me.healthText = this.add.text(1160, 545, hpText(me.health), textStyle(34)).setOrigin(0.5);
+        me.healthText = this.add.text(1160, 545, hpText(me.health, me.maxHealth), textStyle(34)).setOrigin(0.5);
         me.defenseText = this.add.text(1160, 590, "", textStyle(18, '#a8d8ff')).setOrigin(0.5);
 
         // Our mana. Nobody else gets to see this number.
@@ -444,7 +445,7 @@ class MainGame extends Phaser.Scene {
             p.charSprite.specEmitter.on('hover', this.showTooltip, this);
             p.charSprite.specEmitter.on('unhover', this.hideTooltip, this);
             p.usernameText = this.add.text(tx, y - 60, p.username, style).setOrigin(ox, 0);
-            p.healthText = this.add.text(tx, y - 32, hpText(p.health), style).setOrigin(ox, 0);
+            p.healthText = this.add.text(tx, y - 32, hpText(p.health, p.maxHealth), style).setOrigin(ox, 0);
             p.defenseText = this.add.text(tx, y - 6, "", textStyle(16, '#a8d8ff')).setOrigin(ox, 0);
             p.cardCountIcon = this.add.sprite(side == 'left' ? tx + 15 : tx - 15, y + 40, "backofspell_graphic").setScale(0.6);
             p.cardCountText = this.add.text(side == 'left' ? tx + 35 : tx - 35, y + 30, String(p.hand), style).setOrigin(ox, 0);
@@ -518,8 +519,7 @@ class MainGame extends Phaser.Scene {
 
     /** How many of a once-per-turn card we can play (Lilium's Quick Draw) */
     limitFor(card) {
-        if (card.name == 'Bolt') return this.mainPlayer.character?.boltsPerTurn ?? 1;
-        return 1;
+        return perTurnLimit(this.mainPlayer, card);
     }
 
     /** Which living opponent (if any) a card was dropped on */
@@ -681,7 +681,7 @@ class MainGame extends Phaser.Scene {
         const p = this.otherPlayers[username];
         if (!p) return;
         p.health = 50;
-        p.healthText.setText(hpText(Math.ceil(MAX_HEALTH / 2))).setColor('#ffffff');
+        p.healthText.setText(hpText(Math.ceil((p.maxHealth ?? MAX_HEALTH) / 2), p.maxHealth)).setColor('#ffffff');
         p.tint = 0xb38fd9;
         p.charSprite.graphic.setTint(p.tint);
         p.roleIcon?.setTexture("Thrall_graphic");
@@ -697,7 +697,7 @@ class MainGame extends Phaser.Scene {
         this.dead = false;
         me.health = 50;
         me.role = role;
-        me.healthText.setText(hpText(Math.ceil(MAX_HEALTH / 2))).setColor('#c9a0ff');
+        me.healthText.setText(hpText(Math.ceil((me.maxHealth ?? MAX_HEALTH) / 2), me.maxHealth)).setColor('#c9a0ff');
         me.roleSprite.destroy();
         me.roleSprite = new CardSprite(185, HAND_Y, role, 0, this, 2);
         me.roleSprite.setDraggable(false, true);
@@ -777,9 +777,9 @@ class MainGame extends Phaser.Scene {
                 if (meOnField.health < me.health) this.fx.popText(me.username, `-${me.health - meOnField.health}`);
                 else this.fx.popText(me.username, `+${meOnField.health - me.health}`, '#55ff77');
                 me.health = meOnField.health;
-                me.healthText.setText(hpText(me.health));
+                me.healthText.setText(hpText(me.health, me.maxHealth));
             }
-            this.fx.renderStats(me, meOnField.items, 1160, 592, 'center');
+            this.fx.renderStats(me, { ...meOnField, character: me.character }, 1160, 592, 'center');
             this.fx.renderItems(me.username, me, meOnField.items);
             this.fx.renderFrozen(me.username, me, meOnField.frozen);
         }
@@ -814,9 +814,9 @@ class MainGame extends Phaser.Scene {
                 if (truth.health < p.health) this.fx.popText(name, `-${p.health - Math.max(0, truth.health)}`);
                 else this.fx.popText(name, `+${truth.health - p.health}`, '#55ff77');
                 p.health = truth.health;
-                p.healthText.setText(hpText(truth.health));
+                p.healthText.setText(hpText(truth.health, truth.maxHealth));
             }
-            this.fx.renderStats(p, truth.items, p.defenseText.x, p.defenseText.y + 9, p.seat.side, truth.crystals);
+            this.fx.renderStats(p, truth, p.defenseText.x, p.defenseText.y + 9, p.seat.side, truth.crystals);
             this.fx.renderItems(name, p, truth.items);
             this.fx.renderFrozen(name, p, truth.frozen);
         }

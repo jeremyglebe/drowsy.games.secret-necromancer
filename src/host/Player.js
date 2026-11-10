@@ -2,15 +2,15 @@
 export const BASE_INCOME = 1;
 /** Everyone starts with this much health */
 export const MAX_HEALTH = 40;
-/** Most Shields / Robes that count */
-const MAX_ARMOR = 3;
-const MAX_DODGE = 3;
+
+
+import { statOf, isImmune, deathWardOf } from './cards/passives.js';
 
 export default class Player {
     /**
      * @param {string} username
      * @param {import('./roles/Role.js').default} role
-     * @param {import('./cards/abstract/Character.js').default} character
+     * @param {object} character a character card from cards.js
      */
     constructor(username, role, character) {
         /** Username of the player (also the key in Field.players) */
@@ -28,13 +28,15 @@ export default class Player {
         this.health = MAX_HEALTH;
         this.maxHealth = MAX_HEALTH;
         /**
-         * Stats from equipment: armor blocks that much from every hit, dodge
-         * is how many Robes (dodge Bolts on 7 - dodge or more), focus is
-         * added to your damage rolls.
+         * Stats from passives (character and equipment): armor blocks that
+         * much from every hit, evasion dodges Bolts on (7 - evasion) or more,
+         * power is added to your damage rolls.
          */
         this.armor = 0;
-        this.dodge = 0;
-        this.focus = 0;
+        this.evasion = 0;
+        this.power = 0;
+        /** How many times a Death Ward has saved them */
+        this.wardsUsed = 0;
         /** List of cards in the player's hand */
         this.hand = [];
         /** List of item cards the player has equipped */
@@ -46,6 +48,9 @@ export default class Player {
         this.mana = 0;
         /** Mana Crystals played. Public: everyone can see your income. */
         this.crystals = 0;
+        // Character passives (Tiny's Armor) count from the start
+        this.calcStats();
+        this.health = this.maxHealth;
     }
 
     /** Mana gained at the start of each turn */
@@ -54,13 +59,11 @@ export default class Player {
     }
 
     calcStats() {
-        const total = { armor: 0, dodge: 0, focus: 0 };
-        for (const item of this.items) {
-            for (const [stat, amount] of Object.entries(item.stats || {})) total[stat] = (total[stat] || 0) + amount;
-        }
-        this.armor = Math.min(MAX_ARMOR, total.armor);
-        this.dodge = Math.min(MAX_DODGE, total.dodge);
-        this.focus = total.focus;
+        this.armor = statOf(this, 'armor');
+        this.evasion = statOf(this, 'evasion');
+        this.power = statOf(this, 'power');
+        this.maxHealth = MAX_HEALTH + statOf(this, 'maxHealth');
+        this.health = Math.min(this.health, this.maxHealth);
     }
 
     /**
@@ -68,16 +71,14 @@ export default class Player {
      * @param {object} tags what kind of damage it is ({ fire, dodgeable })
      */
     takeDamage(amount, tags = {}) {
-        // Ember's Fireproof
-        if (tags.fire && this.character?.fireproof) return 0;
-        let damage = amount - this.armor;
-        // Tiny's Thick Skin
-        damage = Math.max(0, damage - (this.character?.damageReduction ?? 0));
+        if (isImmune(this, tags)) return 0;
+        this.calcStats();
+        const damage = Math.max(0, amount - this.armor);
         this.health -= damage;
-        // Professor Mittens' Nine Lives (well, two)
-        if (this.health <= 0 && this.character?.nineLives && !this.usedNineLives) {
-            this.usedNineLives = true;
-            this.health = 1;
+        const ward = deathWardOf(this);
+        if (this.health <= 0 && ward && this.wardsUsed < ward.times) {
+            this.wardsUsed++;
+            this.health = ward.hp;
             this.justSaved = true;
         }
         return damage;
