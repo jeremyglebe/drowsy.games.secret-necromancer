@@ -11,10 +11,12 @@
  *   - The Witch Brew victim probably isn't the Necromancer
  * Old evidence slowly fades each round.
  *
- * The Necromancer bluffs: it spends some Bolts on Sorcerers to blend in,
- * leans on Fireball for "accidental" Grandmaster damage, and goes all in when
- * it can finish the Grandmaster this turn. Its Witch Brew goes to whoever has
- * been hurting it.
+ * The Necromancer runs the same evidence rules from the table's point of
+ * view, so it knows how guilty it looks and picks plays it can get away with:
+ * Fireballs while the Grandmaster is healthy ("just clearing the table"),
+ * Bolting whoever the table already suspects (looks like helping), and the
+ * anonymous Witch Brew. It only Bolts the Grandmaster for the kill, or once
+ * it's been caught anyway.
  *
  * Each bot gets a random personality so they don't all play the same.
  */
@@ -55,6 +57,12 @@ export default class Bot {
         this.suspicion = {};
         /** Total damage each player has done to us */
         this.hurtMe = {};
+        /**
+         * What the table as a whole probably thinks: the same evidence rules,
+         * without anyone's private knowledge. The Necromancer uses this to
+         * judge how suspicious it looks.
+         */
+        this.publicSuspicion = {};
 
         const s = this.socket;
         s.on('start game', (field) => {
@@ -63,6 +71,7 @@ export default class Bot {
             for (const name of this.alive) {
                 // Everyone starts with a slightly different gut feeling
                 this.suspicion[name] = rand(-0.5, 0.5);
+                this.publicSuspicion[name] = 0;
                 this.hurtMe[name] = 0;
             }
         });
@@ -86,6 +95,7 @@ export default class Bot {
             if (name == NECRO_PHASE) {
                 // Evidence fades a little each round
                 for (const n in this.suspicion) this.suspicion[n] *= 0.85;
+                for (const n in this.publicSuspicion) this.publicSuspicion[n] *= 0.85;
             }
             if (this.me && name == this.me.username) this.takeTurn();
         });
@@ -120,8 +130,39 @@ export default class Bot {
             .sort((a, b) => (this.suspicion[b] - this.suspicion[a]) || (Math.random() - 0.5));
     }
 
+    /**
+     * The evidence rules. Given a card someone played, returns how much more
+     * (or less) suspicious it makes each player look, as [name, amount] pairs.
+     * @param info the 'spell played' message
+     * @param sus the suspicion map to judge targets by
+     * @param viewer whose eyes we're looking through (null for the table)
+     */
+    evidence({ caster, cardname, target }, sus, viewer) {
+        if (caster == NECRO_PHASE) {
+            // Whoever got brewed probably isn't the Necromancer
+            return [[target, -1]];
+        }
+        if (caster == this.grandmaster || caster == viewer) return [];
+        if (cardname == 'Bolt') {
+            if (target == this.grandmaster) return [[caster, 3]];
+            // Someone hit me, and I know I'm innocent
+            if (viewer && target == viewer && !this.isNecro) return [[caster, 1.5]];
+            // Hitting a suspect looks like helping; hitting someone who
+            // looks innocent doesn't
+            if ((sus[target] ?? 0) >= 1.5) return [[caster, -1]];
+            if ((sus[target] ?? 0) <= -0.5) return [[caster, 1]];
+            return [[caster, 0.3]];
+        }
+        if (cardname == 'Fireball') {
+            // Fine while the GM is healthy, reckless once they're low
+            return [[caster, this.hp(this.grandmaster) <= 30 ? 2 : 0.6]];
+        }
+        return [];
+    }
+
     /** Updates beliefs from a card someone played */
-    observe({ caster, cardname, target, field }) {
+    observe(info) {
+        const { caster, field } = info;
         // Track who has been hurting us
         if (this.name && caster != NECRO_PHASE && caster != this.name) {
             const before = this.hp(this.name);
@@ -129,34 +170,26 @@ export default class Bot {
             if (after < before) this.hurtMe[caster] = (this.hurtMe[caster] || 0) + (before - after);
         }
 
-        const sus = this.suspicion;
-        // Each bot reads the same evidence a little differently
-        const bump = (name, amount) => {
-            if (name && name != this.grandmaster && name != this.name && name in sus) sus[name] += amount * rand(0.6, 1.4);
-        };
-
-        if (caster == NECRO_PHASE) {
-            // The Necromancer doesn't brew against themself
-            bump(target, -1);
-            return;
-        }
-        if (caster == this.name || caster == this.grandmaster) return;
-
-        if (cardname == 'Bolt') {
-            if (target == this.grandmaster) {
-                bump(caster, 3);
-            } else if (target == this.name && !this.isNecro) {
-                bump(caster, 1.5);
-            } else if ((sus[target] ?? 0) >= 1.5) {
-                bump(caster, -1);
-            } else if ((sus[target] ?? 0) <= -0.5) {
-                bump(caster, 1);
-            } else {
-                bump(caster, 0.3);
+        // Our own beliefs. Each bot reads the same evidence a little differently.
+        for (const [name, amount] of this.evidence(info, this.suspicion, this.name)) {
+            if (name && name != this.grandmaster && name != this.name && name in this.suspicion) {
+                this.suspicion[name] += amount * rand(0.6, 1.4);
             }
-        } else if (cardname == 'Fireball') {
-            bump(caster, this.hp(this.grandmaster) <= 30 ? 2 : 0.6);
         }
+        // The table's beliefs, including about us
+        for (const [name, amount] of this.evidence(info, this.publicSuspicion, null)) {
+            if (name && name != this.grandmaster && name in this.publicSuspicion) {
+                this.publicSuspicion[name] += amount;
+            }
+        }
+    }
+
+    /** How much more suspicious than average the table thinks we look */
+    get heat() {
+        const others = this.others().filter((n) => n != this.grandmaster);
+        if (!others.length) return 0;
+        const avg = others.reduce((sum, n) => sum + this.publicSuspicion[n], 0) / others.length;
+        return this.publicSuspicion[this.name] - avg;
     }
 
     /* ---------------------------------------------------------------- */
@@ -235,11 +268,16 @@ export default class Bot {
         const gmAlive = this.alive.has(gm);
         const gmHp = this.hp(gm);
         const gmTakes = (dmg) => dmg - Math.ceil(dmg * this.defense(gm));
+        const caught = this.heat >= 3;
 
-        // Queue the Witch Brew against whoever has hurt us the most
+        // Witch Brew is anonymous, so nobody can pin it on us. Aim it at the
+        // GM when it would finish them (or now and then), otherwise at whoever
+        // has been coming after us.
         if (this.find('Witch Brew') >= 0) {
-            const enemies = this.others().sort((a, b) => (this.hurtMe[b] || 0) - (this.hurtMe[a] || 0));
-            const victim = (this.hurtMe[enemies[0]] || 0) > 0 ? enemies[0] : (gmAlive ? gm : enemies[0]);
+            const threat = this.others().filter((n) => n != gm)
+                .sort((a, b) => (this.hurtMe[b] || 0) - (this.hurtMe[a] || 0))[0];
+            const victim = !gmAlive ? threat
+                : (gmHp <= gmTakes(30) || !threat || chance(0.4)) ? gm : threat;
             if (victim) await this.play('Witch Brew', victim);
         }
         if (!gmAlive) return;
@@ -247,25 +285,32 @@ export default class Bot {
         // Can we finish the Grandmaster right now? Then stop pretending.
         const fireballs = this.count('Fireball');
         const minDamage = (this.find('Bolt') >= 0 ? gmTakes(10) : 0) + fireballs * gmTakes(10);
-        if (minDamage >= gmHp) {
+        if (minDamage >= gmHp || caught) {
             while (this.alive.has(gm) && await this.play('Fireball')) { /* keep burning */ }
             if (this.alive.has(gm)) await this.play('Bolt', gm);
             return;
         }
 
-        // Otherwise blend in. Bolting the GM is the one thing that gives us
-        // away, so only do it once they're weak enough that it's worth it.
-        const bluff = gmHp > 45 ? 1 : this.personality.bluff;
-        if (chance(bluff)) {
-            // Hit a Sorcerer, preferably one who's been hitting us (looks like self-defense)
-            const sorcerers = this.others().filter((n) => n != gm)
-                .sort((a, b) => (this.hurtMe[b] || 0) - (this.hurtMe[a] || 0) || this.hp(a) - this.hp(b));
-            if (sorcerers.length) await this.play('Bolt', sorcerers[0]);
-        } else {
-            await this.play('Bolt', gm);
+        // A Fireball while the GM is healthy reads as "just clearing the
+        // table", so it's the safest way to chip at them. Throw a second one
+        // only if nobody's looking at us yet.
+        if (gmHp > 30 && await this.play('Fireball')) {
+            if (this.heat < 0.5 && chance(0.2)) await this.play('Fireball');
         }
 
-        // Fireball is deniable Grandmaster damage
-        if (chance(gmHp < 50 ? 0.7 : 0.35)) await this.play('Fireball');
+        // Bolt whoever the table already suspects most. It looks like we're
+        // helping, and it gets a Sorcerer out of the way. If nobody stands
+        // out, hit back at someone who's been hitting us, which looks like
+        // self-defense.
+        const sorcerers = this.others().filter((n) => n != gm);
+        const framed = sorcerers.sort((a, b) => this.publicSuspicion[b] - this.publicSuspicion[a])[0];
+        if (framed && this.publicSuspicion[framed] >= 1) {
+            await this.play('Bolt', framed);
+        } else {
+            const attacker = sorcerers.sort((a, b) => (this.hurtMe[b] || 0) - (this.hurtMe[a] || 0))[0];
+            if (attacker && (this.hurtMe[attacker] || chance(this.personality.aggression * 0.5))) {
+                await this.play('Bolt', attacker);
+            }
+        }
     }
 }

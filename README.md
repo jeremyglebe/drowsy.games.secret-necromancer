@@ -1,6 +1,6 @@
 # Secret Necromancer
 
-Play it here: https://jeremyglebe.com/game_jam_cardgame/
+Play it here: https://necromancer.drowsy.games/
 
 Gracie, Zach and I made this for a game jam in April 2020. We didn't finish it. You needed to run a Node server yourself to play, the client was an Electron app, and as far as I remember nobody ever got through a full game.
 
