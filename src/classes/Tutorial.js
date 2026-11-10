@@ -63,7 +63,7 @@ export default class Tutorial {
                 panelY: 370,
             },
             {
-                text: "Necromancy phase! Once per round, the Necromancer's secret ritual takes effect.\n\nWitch Brew deals 30 damage and makes its victim lose a random card. Rise From the Dead brings a dead player back as the Necromancer's Thrall.",
+                text: "Necromancy phase! Once per round, the Necromancer's secret ritual takes effect.\n\nWitch Brew deals 30 damage and makes its victim lose a random card. Raise Dead brings a dead player back as the Necromancer's Thrall.",
                 panelY: 370,
             },
             {

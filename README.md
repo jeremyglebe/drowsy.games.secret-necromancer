@@ -44,7 +44,7 @@ On your turn you draw a card, play whatever you want, and end your turn. You pla
 
 The Necromancer also secretly gets Witch Brew cards. They can set one up on their turn, and at the end of the round it hits the victim for 30 damage and makes them discard a random card. That's the Necromancer's real weapon, since Bolting the Grandmaster out in the open is a good way to get caught.
 
-They also get Rise From the Dead, which brings a dead player back with half their HP as the Necromancer's Thrall. Thralls win if the Necromancer wins. They aren't allowed to Bolt the Necromancer, but nothing stops a Thrall with a grudge from throwing a Fireball.
+They also get Raise Dead, which brings a dead player back with half their HP as the Necromancer's Thrall. Thralls win if the Necromancer wins. They aren't allowed to Bolt the Necromancer, but nothing stops a Thrall with a grudge from throwing a Fireball.
 
 You can hover a card to read it or right-click to make it big.
 

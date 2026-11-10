@@ -16,7 +16,7 @@ import Shield from '../host/cards/items/Shield.js';
 import Robe from '../host/cards/items/Robe.js';
 import Wand from '../host/cards/items/Wand.js';
 import ForgetfulPotion from '../host/cards/necromancy/ForgetfulPotion.js';
-import RiseFromTheDead from '../host/cards/necromancy/RiseFromTheDead.js';
+import RaiseDead from '../host/cards/necromancy/RaiseDead.js';
 
 const SCALE = 1.8;
 const STEP = 112;
@@ -26,7 +26,7 @@ const SECTIONS = [
     { title: "Characters", y: 235, x: 70, cards: () => [new Bacon(), new Lilium(), new Tiny(), new Mittens(), new Ember()] },
     { title: "Roles", y: 235, x: 700, cards: () => [new Grandmaster(), new Sorcerer(), new Necromancer(), new Thrall()] },
     { title: "Spells & Equipment", y: 510, x: 70, cards: () => [new Bolt(), new Fireball(), new Shield(), new Robe(), new Wand()] },
-    { title: "Dark Arts (Necromancer only)", y: 510, x: 700, cards: () => [new ForgetfulPotion(), new RiseFromTheDead()] },
+    { title: "Dark Arts (Necromancer only)", y: 510, x: 700, cards: () => [new ForgetfulPotion(), new RaiseDead()] },
 ];
 
 class Gallery extends Phaser.Scene {

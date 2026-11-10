@@ -77,7 +77,7 @@ class CardSprite {
     layout(x, y, scale) {
         this.graphic.setPosition(x, y).setScale(scale);
         this.nameText.setPosition(x, y + NAME_Y * scale).setFontSize(Math.max(1, 6 * scale));
-        // Long names (Rise From the Dead) shrink to fit the banner
+        // Long names (Professor Mittens) shrink to fit the banner
         const maxWidth = 46 * scale;
         if (this.nameText.width > maxWidth) {
             this.nameText.setFontSize(Math.max(1, 6 * scale * maxWidth / this.nameText.width));

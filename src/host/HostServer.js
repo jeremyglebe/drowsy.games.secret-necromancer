@@ -276,7 +276,7 @@ export default class HostServer {
         }
     }
 
-    /** Called by the Field when Rise From the Dead brings someone back */
+    /** Called by the Field when Raise Dead brings someone back */
     onRaised(username) {
         this.deadPeople = this.deadPeople.filter((n) => n != username);
         this.emit('risen', username);

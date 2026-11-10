@@ -188,7 +188,7 @@ class MainGame extends Phaser.Scene {
 
     onSpellPlayed(obj) {
         let message = null;
-        if (obj.caster == NECRO_PHASE && obj.cardname == 'Rise From the Dead') {
+        if (obj.caster == NECRO_PHASE && obj.cardname == 'Raise Dead') {
             message = obj.target == this.mainPlayer.username ? "You rise from the dead!" : `${obj.target} rises from the dead\nto serve the Necromancer!`;
         } else if (obj.caster == NECRO_PHASE) {
             message = `Dark magic! ${obj.cardname}\nstrikes ${obj.target == this.mainPlayer.username ? 'you' : obj.target}!`;
@@ -233,7 +233,7 @@ class MainGame extends Phaser.Scene {
             case 'Witch Brew':
                 fx.flash(play.target, 0x9b30ff);
                 break;
-            case 'Rise From the Dead':
+            case 'Raise Dead':
                 fx.flash(play.target, 0xb38fd9);
                 break;
         }
@@ -355,7 +355,7 @@ class MainGame extends Phaser.Scene {
     /** Which living opponent (if any) a card was dropped on */
     opponentUnder(bounds, dead = false) {
         for (const [name, p] of Object.entries(this.otherPlayers)) {
-            // Only living players, or only dead ones (for Rise From the Dead)
+            // Only living players, or only dead ones (for Raise Dead)
             if ((p.health > 0) == dead) continue;
             if (Phaser.Geom.Rectangle.Overlaps(bounds, p.charSprite.getBounds())) {
                 return name;

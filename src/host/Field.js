@@ -163,7 +163,7 @@ export default class Field {
             if (player.role.name != 'Necromancer' || this.necroCard) return false;
             const victim = this.players[targets];
             if (!victim) return false;
-            // Rise From the Dead needs a corpse; everything else needs someone alive
+            // Raise Dead needs a corpse; everything else needs someone alive
             if ((card.targetType == 'dead') != (victim.health <= 0)) return false;
             if (card.targetType == 'dead' && victim.role.name == 'Necromancer') return false;
             player.hand.splice(index, 1);

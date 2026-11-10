@@ -15,8 +15,8 @@ class Boot extends Phaser.Scene {
         this.load.image("Shield_graphic", "assets/cards/shield_card.png");
         this.load.image("Robe_graphic", "assets/cards/robe_card.png");
         this.load.image("Wand_graphic", "assets/cards/wand_card.png");
-        this.load.image("Rise From the Dead_graphic", "assets/cards/risefromthedead_card.png");
-        this.load.image("Thrall_graphic", "assets/cards/risefromthedead_card.png");
+        this.load.image("Raise Dead_graphic", "assets/cards/raise_dead_card.png");
+        this.load.image("Thrall_graphic", "assets/cards/thrall_card.png");
         this.load.image("roleback_graphic", "assets/cards/role_card_back.png");
         this.load.image("darkback_graphic", "assets/cards/dark_card_back.png");
         this.load.image("Witch Brew_graphic", "assets/cards/cauldron_card.png");

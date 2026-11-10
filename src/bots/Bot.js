@@ -322,8 +322,8 @@ export default class Bot {
 
         // A corpse on the table? Raise it to fight for us. (One ritual per turn.)
         const corpse = this.dead.find((n) => n != gm && n != this.name);
-        if (corpse && this.find('Rise From the Dead') >= 0) {
-            await this.play('Rise From the Dead', corpse);
+        if (corpse && this.find('Raise Dead') >= 0) {
+            await this.play('Raise Dead', corpse);
         } else if (this.find('Witch Brew') >= 0) {
             await this.brew(gm, gmAlive, gmHp, gmTakes);
         }
