@@ -53,4 +53,4 @@ If you're poking around the code: the game rules are in `src/host` (this used to
 
 ## Credits
 
-Jeremy Glebe, Gracie Glebe and Zachary Kingcade. MIT license.
+Jeremy Glebe, Gracie Glebe and Zachary Kingcade.
