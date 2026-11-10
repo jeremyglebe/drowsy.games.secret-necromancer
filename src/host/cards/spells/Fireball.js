@@ -1,0 +1,15 @@
+import Spell from '../abstract/Spell.js';
+
+export default class Fireball extends Spell {
+    constructor() {
+        super("Fireball", "Explosive! Inflict\n10 Damage on all\nother players.", "others");
+    }
+
+    activate(field, caster, targets) {
+        for (const [name, player] of Object.entries(field.players)) {
+            if (name != caster && player.health > 0) {
+                player.takeDamage(10);
+            }
+        }
+    }
+}

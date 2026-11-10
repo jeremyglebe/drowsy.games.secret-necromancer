@@ -1,0 +1,47 @@
+export default class Player {
+    /**
+     * @param {string} username
+     * @param {import('./roles/Role.js').default} role
+     * @param {import('./cards/abstract/Character.js').default} character
+     */
+    constructor(username, role, character) {
+        /** Username of the player (also the key in Field.players) */
+        this.username = username;
+        /**
+         * Role of the user is what "team" they're on. Grandmasters & Sorcerers
+         * are fighting the Necromancer. The Grandmaster is known to everyone,
+         * but whether another player is a Sorcerer or the Necromancer is a
+         * mystery.
+         */
+        this.role = role;
+        /** What character the player is */
+        this.character = character;
+        /** Health of the player, out of 100 */
+        this.health = 100;
+        /** Stats, recalculated from items whenever used */
+        this.defense = 0;
+        this.evasion = 0;
+        this.focus = 0;
+        /** List of cards in the player's hand */
+        this.hand = [];
+        /** List of item cards the player has equipped */
+        this.items = [];
+    }
+
+    calcStats() {
+        this.defense = 0;
+        this.evasion = 0;
+        this.focus = 0;
+        for (const item of this.items) {
+            item.activate(this);
+        }
+    }
+
+    /** Applies damage reduced by defense. Returns damage actually taken. */
+    takeDamage(amount) {
+        this.calcStats();
+        const damage = amount - Math.ceil(amount * this.defense);
+        this.health -= damage;
+        return damage;
+    }
+}

@@ -1,5 +1,6 @@
 node_modules
 .vscode
+dist
 **/defs/**
-jsconfig.
+jsconfig.*
 4-clients.sh

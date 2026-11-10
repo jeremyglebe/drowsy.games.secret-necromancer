@@ -1,0 +1,102 @@
+import { createLocalPair } from './Endpoint.js';
+import { hostRoom, joinRoom } from './Peer.js';
+import HostServer from '../host/HostServer.js';
+import Bot from '../bots/Bot.js';
+
+/**
+ * The client's connection to the game host. Every player (including the host
+ * themself) talks to the HostServer through this same API, so the scenes don't
+ * care whether they're hosting or joining.
+ */
+class SocketClient {
+    /** @type {import('./Endpoint.js').default | null} */
+    static socket = null;
+    /** Room code of the current game */
+    static roomCode = null;
+    /** The HostServer instance, only set if this client is hosting */
+    static server = null;
+
+    /**
+     * Opens a room on the PeerJS signalling server, starts a HostServer in
+     * this browser tab, and connects to it locally.
+     * @param {string} username
+     * @returns {Promise<string>} the room code
+     */
+    static async host(username) {
+        const server = new HostServer();
+        const { code, peer } = await hostRoom((endpoint, meta) => {
+            server.addSocket(endpoint, meta.username);
+        });
+        server.peer = peer;
+        const [serverSide, clientSide] = createLocalPair(false, true);
+        this.server = server;
+        this.socket = clientSide;
+        this.roomCode = code;
+        server.addSocket(serverSide, username);
+        return code;
+    }
+
+    /**
+     * Starts an offline tutorial game against three bots. The player is a
+     * Sorcerer, goes first, and starts with one of each kind of card.
+     * @param {string} username
+     */
+    static tutorial(username) {
+        const bots = ['Merlina', 'Hexley', 'Grimsby'].map((n) => n == username ? n + '?' : n);
+        const grandmaster = bots[0];
+        const necromancer = bots[1 + Math.floor(Math.random() * 2)];
+        const roles = { [username]: 'Sorcerer' };
+        for (const b of bots) {
+            roles[b] = b == grandmaster ? 'Grandmaster' : b == necromancer ? 'Necromancer' : 'Sorcerer';
+        }
+        const server = new HostServer({
+            roles,
+            turnOrder: [username, ...bots],
+            startingHands: { [username]: ['Bolt', 'Fireball', 'Shield', 'Bolt', 'Bolt'] },
+        });
+        const [serverSide, clientSide] = createLocalPair(false, true);
+        this.server = server;
+        this.socket = clientSide;
+        this.roomCode = null;
+        server.addSocket(serverSide, username);
+        for (const name of bots) {
+            const [botServerSide, botClientSide] = createLocalPair(false, true);
+            server.addSocket(botServerSide, name);
+            new Bot(botClientSide, { delay: 1300, maxPlays: 2 });
+        }
+    }
+
+    /**
+     * Joins an existing room by code.
+     * @param {string} username
+     * @param {string} code
+     */
+    static async join(username, code) {
+        this.socket = await joinRoom(code, { username });
+        this.roomCode = code.trim().toUpperCase();
+    }
+
+    /**
+     * Sends a message and data argument to the host
+     * @param {string} key
+     * @param {any} data
+     */
+    static emit(key, data) {
+        if (this.socket) {
+            this.socket.emit(key, data);
+        }
+    }
+
+    /**
+     * Listens for an event from the host and executes a function on event.
+     * @param {string} key
+     * @param {function} callback
+     */
+    static on(key, callback) {
+        if (this.socket) {
+            this.socket.on(key, callback);
+        }
+    }
+}
+
+export default SocketClient;
