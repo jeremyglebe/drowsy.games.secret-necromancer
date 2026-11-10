@@ -26,6 +26,7 @@
 import { BASE_INCOME } from '../host/Player.js';
 import { costFor } from '../host/cards/costs.js';
 import { perTurnLimit } from '../host/cards/passives.js';
+import { pick } from './Talk.js';
 
 const NECRO_PHASE = '##NECRO##';
 const HORROR = '##ENCOUNTER##';
@@ -95,6 +96,10 @@ export default class Bot {
         /** Our own mana bank */
         this.mana = 0;
         this.reserve = 0;
+        /** Chat: when we last said something, and who we've called out lately */
+        this.lastSaid = 0;
+        this.round = 0;
+        this.accused = {};
         /**
          * What the table can work out about everyone's bank: mana they've
          * made minus mana they've been seen spending. The Necromancer's
@@ -143,11 +148,19 @@ export default class Bot {
         s.on('death', (name) => {
             this.alive.delete(name);
             this.dead.push(name);
+            if (name != this.name && this.alive.has(this.name)) this.say('died', { t: name }, 0.25);
+        });
+        s.on('chat', ({ from, text }) => {
+            // Someone said our name? Probably an accusation.
+            if (from != this.name && this.name && text.toLowerCase().includes(this.name.toLowerCase())) {
+                this.say('mentioned', { c: from }, 0.6);
+            }
         });
         s.on('risen', (name) => {
             this.alive.add(name);
             this.dead = this.dead.filter((n) => n != name);
             this.thralls.add(name);
+            if (name != this.name) this.say('risen', { t: name }, 0.4);
             // Everyone saw that. A Thrall is a known enemy of the good guys.
             if (name != this.name) {
                 this.suspicion[name] = Math.max(this.suspicion[name] || 0, 2.5);
@@ -157,10 +170,15 @@ export default class Bot {
         s.on('you rose', ({ role, necromancer }) => {
             this.me.role = role;
             this.master = necromancer;
+            this.say('iRose', {}, 0.8);
         });
-        s.on('game over', () => { this.over = true; });
+        s.on('game over', ({ winners }) => {
+            this.over = true;
+            this.say(winners?.includes(this.name) ? 'won' : 'lost', {}, 0.5, true);
+        });
         s.on('turn start', (name) => {
             if (name == NECRO_PHASE) {
+                this.round++;
                 // Evidence fades a little each round
                 for (const n in this.suspicion) this.suspicion[n] *= 0.85;
                 for (const n in this.publicSuspicion) this.publicSuspicion[n] *= 0.85;
@@ -287,6 +305,58 @@ export default class Bot {
             if (name && name != this.grandmaster && name in this.publicSuspicion) {
                 this.publicSuspicion[name] += amount;
             }
+        }
+            this.react(info);
+    }
+
+    /* ---------------------------------------------------------------- */
+    /* Talking                                                           */
+    /* ---------------------------------------------------------------- */
+
+    /**
+     * Maybe says a line from Talk.js in chat. Bots don't talk constantly:
+     * there's a chance, and a cooldown.
+     */
+    say(key, vars = {}, chanceToSay = 1, evenIfOver = false) {
+        if (!this.name || (this.over && !evenIfOver)) return;
+        if (Math.random() > chanceToSay) return;
+        const now = Date.now();
+        if (now - this.lastSaid < this.delay * 2.5) return;
+        this.lastSaid = now;
+        const text = pick(key, { gm: this.grandmaster, ...vars });
+        // A little typing time
+        setTimeout(() => this.socket.emit('chat', text), this.delay * rand(0.3, 0.9));
+    }
+
+    /** Chat reactions to a card someone played */
+    react({ caster, cardname, target, dodged }) {
+        const me = this.name;
+        if (!me || !this.alive.has(me)) return;
+        const good = !this.isNecro && this.role != 'Thrall';
+        if (caster == NECRO_PHASE) {
+            if (cardname == 'Witch Brew' && target == me) this.say('brewed', {}, 0.6);
+            if (cardname == 'Eldritch Horror') this.say('horror', {}, 0.35);
+            return;
+        }
+        if (caster == me) return;
+        if (cardname == 'Bolt' && target == me && !dodged) {
+            // If the table already thinks it's us, protest instead
+            if (this.heat >= 1.5) this.say('defend', {}, 0.5);
+            else if (good) this.say('boltedMe', { c: caster }, 0.5);
+        } else if (cardname == 'Bolt' && target == this.grandmaster && good && this.accused[caster] != this.round) {
+            this.accused[caster] = this.round;
+            this.say('boltedGM', { c: caster }, 0.7);
+        } else if (cardname == 'Healing Potion' && target == me) {
+            this.say('healedMe', { c: caster }, 0.4);
+        } else if (cardname == 'Freeze' && target == me) {
+            this.say('frozeMe', { c: caster }, 0.6);
+        } else if (this.isNecro && chance(0.12)) {
+            // Point the finger at whoever already looks guilty
+            const others = this.others().filter((n) => n != this.grandmaster && !this.thralls.has(n));
+            const scapegoat = others.sort((a, b) => this.publicSuspicion[b] - this.publicSuspicion[a])[0];
+            if (scapegoat && this.publicSuspicion[scapegoat] >= 1.5) this.say('frame', { t: scapegoat });
+        } else if (this.heat >= 2 && chance(0.1)) {
+            this.say('defend');
         }
     }
 

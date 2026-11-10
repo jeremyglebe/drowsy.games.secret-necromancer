@@ -32,7 +32,7 @@ The Necromancer also gets secret dark arts. They pay for one on their turn and i
 
 The tutorial covers the rest, and Browse Cards on the title screen has every card and character.
 
-You can hover a card to read it or right-click to make it big.
+You can hover a card to read it or right-click to make it big. Press Enter to chat. The bots will chat back, accuse people, and lie if they're the Necromancer. Dead players can still chat, but only with each other.
 
 ## About the multiplayer
 

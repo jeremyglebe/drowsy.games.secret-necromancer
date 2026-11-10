@@ -19,6 +19,8 @@
  * 'all ready': everyone readied up, cards are about to be dealt (to all)
  * 'turn skipped': username of a Frozen player whose turn was skipped (to all)
  * 'sync': { field, player } (to each client, periodically)
+ * 'chat': { from, text, dead } (to everyone, or only the dead if a dead
+ *     player said it: no tips from beyond the grave)
  * 'death': username (to all)
  * 'game over': { winners: string[], roles: {username: roleName} } (to all)
  * 'risen': username raised from the dead as a Thrall (to all)
@@ -35,6 +37,9 @@ import Field from './Field.js';
 
 export const MIN_PLAYERS = 4;
 export const MAX_PLAYERS = 5;
+
+/** Longest chat message, in characters */
+export const CHAT_LENGTH = 120;
 
 export default class HostServer {
 
@@ -120,9 +125,25 @@ export default class HostServer {
                 this.update();
             }
         });
+        endpoint.on('chat', (text) => this.onChat(socket, text));
         endpoint.on('turn end', () => {
             if (this.field) this.field.onTurnEnd(socket.username);
         });
+    }
+
+    onChat(socket, text) {
+        text = String(text ?? '').replace(/\s+/g, ' ').trim().slice(0, CHAT_LENGTH);
+        if (!text) return;
+        // Don't let anyone spam the table
+        const now = Date.now();
+        if (now - (socket.lastChat || 0) < 400) return;
+        socket.lastChat = now;
+        const dead = this.deadPeople.includes(socket.username);
+        const message = { from: socket.username, text, dead };
+        if (!dead) return this.emit('chat', message);
+        for (const s of Object.values(this.sockets)) {
+            if (this.deadPeople.includes(s.username)) s.endpoint.emit('chat', message);
+        }
     }
 
     rejectionReason(username) {

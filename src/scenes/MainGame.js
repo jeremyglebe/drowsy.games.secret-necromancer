@@ -3,6 +3,7 @@ import client from '../net/SocketClient.js';
 import CardSprite from '../classes/CardSprite.js';
 import Tutorial from '../classes/Tutorial.js';
 import TableFx from '../classes/TableFx.js';
+import Chat from '../classes/Chat.js';
 import { makeButton, textStyle } from '../classes/UI.js';
 import { costFor } from '../host/cards/costs.js';
 import { CARDS } from '../host/cards/cards.js';
@@ -92,6 +93,15 @@ class MainGame extends Phaser.Scene {
             .setStrokeStyle(2, 0xb36bff).setDepth(80).setVisible(false);
         this.tooltipText = this.add.text(640, 300, "", { ...textStyle(20), wordWrap: { width: 360 } })
             .setOrigin(0.5).setDepth(81).setVisible(false);
+
+        // Table chat, in the empty left side of the play area
+        this.chat = new Chat(this, {
+            x: 245, bottom: 440, width: 280,
+            onSend: (text) => client.emit('chat', text),
+            colorFor: (name) => name == this.mainPlayer?.username ? '#ffe680'
+                : name == this.grandmaster ? '#ff88ff' : '#ffffff',
+        });
+        client.on('chat', (message) => this.chat.add(message));
 
         client.on('your player', (player) => {
             this.mainPlayer = player;
