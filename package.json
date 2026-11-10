@@ -1,6 +1,6 @@
 {
   "name": "secret-necromancer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "Secret identity card game revolving around dark arts and sorcery. Peer-to-peer via PeerJS.",
