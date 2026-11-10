@@ -9,8 +9,12 @@ const ENLARGED_SCALE = 7;
 /** Mana cost badge, top left corner */
 const COST_X = -23;
 const COST_Y = -38;
-/** With a badge, the name moves over (and gets less room) to clear it */
-const NAME_SHIFT = 4;
+/**
+ * Names stay centered. With a badge, they get less room on both sides so
+ * they never run under it (the badge reaches ~18 card pixels from center).
+ */
+const NAME_ROOM = 40;
+const NAME_ROOM_WITH_BADGE = 34;
 
 /**
  * The client side version of a card: the card data from the host plus the
@@ -97,11 +101,11 @@ class CardSprite {
     /** Positions and sizes the art and text for a given location and scale */
     layout(x, y, scale) {
         this.graphic.setPosition(x, y).setScale(scale);
-        const shift = this.costIcon ? NAME_SHIFT : 0;
-        this.nameText.setPosition(x + shift * scale, y + NAME_Y * scale).setFontSize(Math.max(1, 6 * scale));
-        // Long names (Professor Mittens) shrink to fit the banner
-        // (the inside of the narrowest banner, on spell cards, is ~40 card pixels)
-        const maxWidth = (40 - 2 * shift) * scale;
+        this.nameText.setPosition(x, y + NAME_Y * scale).setFontSize(Math.max(1, 6 * scale));
+        // Long names (Professor Mittens, Healing Potion) shrink to fit the
+        // banner (the inside of the narrowest one, on spell cards, is ~40
+        // card pixels) and to stay clear of the cost badge
+        const maxWidth = (this.costIcon ? NAME_ROOM_WITH_BADGE : NAME_ROOM) * scale;
         if (this.nameText.width > maxWidth) {
             this.nameText.setFontSize(Math.max(1, 6 * scale * maxWidth / this.nameText.width));
         }
