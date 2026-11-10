@@ -7,8 +7,10 @@ const DESC_WIDTH = 40;     // usable width inside the description box
 const DESC_Y = 18;         // top edge of the description box
 const ENLARGED_SCALE = 7;
 /** Mana cost badge, top left corner */
-const COST_X = -20;
-const COST_Y = -35;
+const COST_X = -23;
+const COST_Y = -38;
+/** With a badge, the name moves over (and gets less room) to clear it */
+const NAME_SHIFT = 4;
 
 /**
  * The client side version of a card: the card data from the host plus the
@@ -95,10 +97,11 @@ class CardSprite {
     /** Positions and sizes the art and text for a given location and scale */
     layout(x, y, scale) {
         this.graphic.setPosition(x, y).setScale(scale);
-        this.nameText.setPosition(x, y + NAME_Y * scale).setFontSize(Math.max(1, 6 * scale));
+        const shift = this.costIcon ? NAME_SHIFT : 0;
+        this.nameText.setPosition(x + shift * scale, y + NAME_Y * scale).setFontSize(Math.max(1, 6 * scale));
         // Long names (Professor Mittens) shrink to fit the banner
         // (the inside of the narrowest banner, on spell cards, is ~40 card pixels)
-        const maxWidth = 40 * scale;
+        const maxWidth = (40 - 2 * shift) * scale;
         if (this.nameText.width > maxWidth) {
             this.nameText.setFontSize(Math.max(1, 6 * scale * maxWidth / this.nameText.width));
         }
@@ -108,9 +111,9 @@ class CardSprite {
             this.descripText.setFontSize(Math.max(1, 3.3 * scale * DESC_WIDTH * scale / this.descripText.width));
         }
         if (this.costIcon) {
-            this.costIcon.setPosition(x + COST_X * scale, y + COST_Y * scale).setScale(scale * 0.42);
+            this.costIcon.setPosition(x + COST_X * scale, y + COST_Y * scale).setScale(scale * 0.34);
             this.costText.setPosition(x + COST_X * scale, y + (COST_Y + 1) * scale)
-                .setFontSize(Math.max(1, 7 * scale)).setStroke('#000000', Math.max(1, 1.2 * scale));
+                .setFontSize(Math.max(1, 6 * scale)).setStroke('#000000', Math.max(1, 1.1 * scale));
         }
     }
 
