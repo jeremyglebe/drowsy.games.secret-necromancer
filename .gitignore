@@ -1,5 +1,10 @@
+# Ignore every dotfile and dot-folder (at any depth)...
+.*
+# ...except these
+!.gitignore
+!.github/
+
 node_modules
-.vscode
 dist
 **/defs/**
 jsconfig.*
