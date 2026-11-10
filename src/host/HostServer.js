@@ -84,8 +84,9 @@ export default class HostServer {
      * Called for each new connection (remote peer or local loopback).
      * @param endpoint an Endpoint with emit/on/close
      * @param {string} username the player's requested username
+     * @param {object} [info] extra details, e.g. { bot: true }
      */
-    addSocket(endpoint, username) {
+    addSocket(endpoint, username, info = {}) {
         username = String(username || '').trim().slice(0, 16);
         const reject = this.rejectionReason(username);
         if (reject) {
@@ -95,7 +96,7 @@ export default class HostServer {
             return;
         }
 
-        const socket = { id: this.nextId++, username, endpoint };
+        const socket = { id: this.nextId++, username, endpoint, bot: !!info.bot };
         this.sockets[socket.id] = socket;
         if (this.vip == null) this.vip = socket.id;
 
@@ -128,6 +129,7 @@ export default class HostServer {
         this.emit('update players', {
             usernames: this.usernames,
             vip: this.sockets[this.vip]?.username,
+            bots: Object.values(this.sockets).filter((s) => s.bot).map((s) => s.username),
         });
     }
 

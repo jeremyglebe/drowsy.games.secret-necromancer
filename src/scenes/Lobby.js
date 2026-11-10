@@ -42,7 +42,8 @@ class Lobby extends Phaser.Scene {
             });
 
         if (this.vip) {
-            this.startButton = makeButton(this, 640, 600, 360, 70, "Start The Game", () => client.emit("start"));
+            this.botButton = makeButton(this, 470, 600, 260, 70, "Add Bot", () => client.addBot(), 0xb36bff);
+            this.startButton = makeButton(this, 810, 600, 340, 70, "Start The Game", () => client.emit("start"));
             this.startButton.setEnabled(false);
         }
         this.hint = this.add.text(640, 670, "", textStyle(20, '#ffffff')).setOrigin(0.5);
@@ -62,17 +63,27 @@ class Lobby extends Phaser.Scene {
     onUpdatePlayers(data) {
         if (!this.alive) return;
         for (const tag of this.tags) tag.destroy();
-        this.tags = data.usernames.map((name, i) =>
-            this.add.text(640, 120 + 44 * i, name + (data.vip == name ? '  (host)' : ''),
-                textStyle(34, data.vip == name ? '#ff88ff' : '#ffffff')).setOrigin(0.5));
+        const bots = data.bots || [];
+        this.tags = data.usernames.map((name, i) => {
+            const isBot = bots.includes(name);
+            const label = name + (data.vip == name ? '  (host)' : isBot ? '  (bot)' : '');
+            const tag = this.add.text(640, 120 + 44 * i, label,
+                textStyle(34, data.vip == name ? '#ff88ff' : isBot ? '#a8d8ff' : '#ffffff')).setOrigin(0.5);
+            // The host can click a bot to send it home
+            if (this.vip && isBot) {
+                tag.setInteractive({ useHandCursor: true }).on('pointerdown', () => client.removeBot(name));
+            }
+            return tag;
+        });
 
         const count = data.usernames.length;
         const ready = count >= MIN_PLAYERS;
         if (this.vip) {
             this.startButton.setEnabled(ready);
+            this.botButton.setEnabled(count < 5);
             this.hint.setText(ready
-                ? `${count}/5 players. Ready when you are!`
-                : `${count}/5 players. Need at least ${MIN_PLAYERS} to start.`);
+                ? `${count}/5 players. Ready when you are!` + (bots.length ? ' (click a bot to remove it)' : '')
+                : `${count}/5 players. Need at least ${MIN_PLAYERS} to start. Add bots to fill seats.`);
         } else {
             this.hint.setText(`${count}/5 players. Waiting for the host to start...`);
         }

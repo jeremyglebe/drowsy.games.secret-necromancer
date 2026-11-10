@@ -43,7 +43,7 @@ export default class Tutorial {
                 waitFor: (event, payload) => event == 'card played' && payload.card.name == 'Bolt',
             },
             {
-                text: "Zap! You can play as many cards as you like each turn.\n\nFireball hits EVERY other player for 10, the Grandmaster too. To cast it, drag it into the middle of the table.",
+                text: "Zap! You only get one Bolt per turn, but every other card is unlimited.\n\nFireball hits EVERY other player for 10, the Grandmaster too. To cast it, drag it into the middle of the table.",
                 highlight: () => [scene.playZone.getBounds()],
             },
             {
@@ -63,7 +63,7 @@ export default class Tutorial {
                 panelY: 370,
             },
             {
-                text: "Necromancy phase! Once per round, the Necromancer's secret ritual takes effect.\n\nWitch Brew makes its victim lose a random card. Only the Necromancer can cast these.",
+                text: "Necromancy phase! Once per round, the Necromancer's secret ritual takes effect.\n\nWitch Brew deals 30 damage and makes its victim lose a random card. Only the Necromancer can cast these.",
                 panelY: 370,
             },
             {

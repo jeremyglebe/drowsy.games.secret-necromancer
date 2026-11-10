@@ -1,76 +1,56 @@
 # Secret Necromancer
 
-A secret identity card game about sorcery and the dark arts, for 4-5 players.
+Play it here: https://jeremyglebe.com/game_jam_cardgame/
 
-**[Play it in your browser](https://jeremyglebe.github.io/game_jam_cardgame/)**
+Gracie, Zach and I made this for a game jam in April 2020. We didn't finish it. You needed to run a Node server yourself to play, the client was an Electron app, and as far as I remember nobody ever got through a full game.
 
-## About this project
+In 2026 I got nostalgic and fixed it up enough to actually play. It's a website now, it runs peer to peer so there's no server to keep alive, and there's a tutorial with some bots. The rules and art are the same stuff we threw together back then, except Bolt is limited to one per turn like we meant it to be. Unlimited Bolts was because we ran out of time.
 
-Back in April 2020, Gracie, Zach and I made this for a game jam... and didn't finish it. It sat on my GitHub half-working ever since: a Node/socket.io server you had to run yourself, an Electron client that couldn't really finish a game, and no release.
+I don't plan on touching it again after this.
 
-Six years later I got a little nostalgic and decided to "finish" it, just once, for a laugh. That means **playable, nothing deeper**. The rules are still our jam-weekend rules, the balance is whatever it is, and the art is the art we drew back then. I don't plan to update it again, so consider it done (enough).
+## Playing
 
-What changed in the 2026 update:
+You need 4 or 5 people. One person clicks Host a Game and sends everyone the room code (or the invite link in the lobby). Everyone else types in the code and clicks Join. The host starts the game once everyone's in. If you're short on people, the host can fill empty seats with bots. They're not geniuses, but they do try to figure out who the Necromancer is.
 
-- **No server to host anymore.** Games run peer-to-peer in the browser. One player hosts, and their browser runs the game. Everyone else joins with a 4-letter room code. Matchmaking goes through the free public [PeerJS](https://peerjs.com/) server, so there's nothing to deploy.
-- **It's trust based.** The host's browser is the referee, so the host could cheat if they really wanted to. Don't play with people who would do that.
-- **It's a website now** instead of an Electron app.
-- **An interactive tutorial** where you play a game against a few (not very smart) bots.
-- A pile of bug fixes so a game can actually be played from start to finish.
+If you've never played, there's a tutorial on the title screen.
 
-## How to play
+## Rules
 
-1. Everyone opens the game. One person clicks **Host a Game** and shares the room code (or the invite link from the lobby).
-2. Everyone else types the code and clicks **Join**.
-3. When 4 or 5 sorcerers have gathered, the host clicks **Start The Game**.
+It's kind of Bang! mixed with a little MTG. Everyone gets a secret role.
 
-If you've never played, click **How to Play (Tutorial)** on the title screen.
+The Grandmaster is revealed to everyone at the start. Their goal is to kill the Necromancer.
 
-### Rules
+The Necromancer is secret. They win if the Grandmaster dies.
 
-Every player secretly gets a role:
+Everyone else is a Sorcerer. Sorcerers are on the Grandmaster's side, but nobody knows who they are, so from the outside a Sorcerer looks exactly like the Necromancer.
 
-| Role | Who knows? | Goal |
-| --- | --- | --- |
-| **Grandmaster** | Everyone | Destroy the Necromancer |
-| **Sorcerer** | Only you | Protect the Grandmaster, destroy the Necromancer |
-| **Necromancer** | Only you | Kill the Grandmaster |
+On your turn you draw a card, play whatever you want, and end your turn. You play cards by dragging them:
 
-If the Necromancer dies, everyone else wins. If the Grandmaster dies, the Necromancer wins.
+- Bolt: drag it onto a player for 10-20 damage. One per turn.
+- Fireball: drag it into the middle of the table. 10 damage to every other player, Grandmaster included, so be careful.
+- Shield: drag it onto your own character card. Blocks 15% of damage, stacks up to 60%.
 
-On your turn you draw a card, play as many cards as you like, then click **End Turn**. Drag a card to play it:
+The Necromancer also secretly gets Witch Brew cards. They can set one up on their turn, and at the end of the round it hits the victim for 30 damage and makes them discard a random card. That's the Necromancer's real weapon, since Bolting the Grandmaster out in the open is a good way to get caught.
 
-- **Bolt**: drop it on a player. Deals 10-20 damage.
-- **Fireball**: drop it in the middle of the table. Deals 10 damage to *every* other player, including the Grandmaster.
-- **Shield**: drop it on your own character card. Blocks 15% of incoming damage (stacks up to 60%).
+You can hover a card to read it or right-click to make it big.
 
-The Necromancer also secretly draws **Witch Brew** cards. They can queue one per turn on a victim, and it takes effect during the **Necromancy phase** at the end of each round, making the victim lose a random card. So keep an eye on who is attacking the Grandmaster.
+## About the multiplayer
 
-Hover over any card to read it, or right-click to enlarge it.
+It uses [PeerJS](https://peerjs.com/). The host's browser runs the game and everyone else connects straight to them. PeerJS's free public server is only used to connect people to each other. That means the host could cheat if they really wanted to. Play with friends.
 
-## Running it locally
+Also, if the host closes their tab, the game's over for everyone.
 
-You'll need Node.js 18 or newer.
+## Running it yourself
 
 ```bash
 npm install
-npm run dev      # dev server at http://localhost:5173
-npm test         # plays a batch of bot-vs-bot games headlessly
-npm run build    # static build in dist/
+npm run dev
 ```
 
-The build is just static files, so it can go on any static host. It does need to be *served* (e.g. `npx vite preview` or `npx serve dist`); opening `index.html` straight from disk won't work.
+`npm test` runs a bunch of bot-only games to make sure nothing's broken, and `npm run build` spits out a static site in `dist/`. You have to serve that folder with something (`npx vite preview` works); opening the HTML file directly won't load.
 
-## How it's put together
-
-- `src/host/`: the game rules. This used to be the Node server. Now it runs in the host player's browser tab.
-- `src/net/`: PeerJS networking. It keeps the socket.io-style `emit`/`on` API that the original code was written against, which meant most of the old game code survived.
-- `src/scenes/`: the Phaser 3 scenes (title, lobby, game, ending).
-- `src/bots/`: the simple bot players used by the tutorial and the tests.
-- `public/assets/`: the card art and backgrounds from the jam. `assets/art_dump/` has the original art files.
+If you're poking around the code: the game rules are in `src/host` (this used to be the server), the networking is in `src/net`, the Phaser scenes are in `src/scenes`, and the bots are in `src/bots`. The original art files from the jam are in `assets/art_dump`.
 
 ## Credits
 
-Made by Jeremy Glebe, Gracie Glebe and Zachary Kingcade.
-
-MIT licensed.
+Jeremy Glebe, Gracie Glebe and Zachary Kingcade. MIT license.

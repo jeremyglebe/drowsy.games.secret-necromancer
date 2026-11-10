@@ -54,6 +54,8 @@ export default class Field {
         this.necroCard = null;
         /** Set when the game has ended, stops all further turns */
         this.over = false;
+        /** Names of once-per-turn cards already played this turn */
+        this.playedThisTurn = new Set();
 
         this.charDeck = CharDeck();
         this.mainDeck = MainDeck();
@@ -165,6 +167,8 @@ export default class Field {
             return true;
         }
 
+        if (card.oncePerTurn && this.playedThisTurn.has(card.name)) return false;
+
         if (card.type == 'item') {
             player.hand.splice(index, 1);
             player.items.push(card);
@@ -175,6 +179,7 @@ export default class Field {
                 if (!target || target.health <= 0) return false;
             }
             card.activate(this, username, targets);
+            if (card.oncePerTurn) this.playedThisTurn.add(card.name);
             player.hand.splice(index, 1);
             this.discardCard(card);
         }
@@ -245,6 +250,7 @@ export default class Field {
     startTurn() {
         if (this.over) return;
         const current = this.currentTurn;
+        this.playedThisTurn.clear();
         this.server.emit('turn start', current);
         if (current == NECRO_PHASE) {
             this.doNecromancy();

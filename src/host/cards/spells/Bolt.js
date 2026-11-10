@@ -3,7 +3,9 @@ import { randInt } from '../../Tools.js';
 
 export default class Bolt extends Spell {
     constructor() {
-        super("Bolt", "Inflict 10-20 Damage\non target player.", "player");
+        super("Bolt", "Inflict 10-20 Damage\non target player.\nOne Bolt per turn.", "player");
+        /** Like a Bang!, you only get one of these per turn */
+        this.oncePerTurn = true;
     }
 
     activate(field, caster, target) {

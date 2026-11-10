@@ -34,6 +34,8 @@ class MainGame extends Phaser.Scene {
         this.hand = [];
         /** Whether we already queued a necromancy card this turn */
         this.necroCardPlayed = false;
+        /** Once-per-turn cards (Bolt) we've already played this turn */
+        this.playedThisTurn = new Set();
         this.isYourTurn = false;
         this.whosTurn = "";
         this.dead = false;
@@ -221,6 +223,7 @@ class MainGame extends Phaser.Scene {
             name: sprite.card.name,
             targets,
         });
+        if (sprite.card.oncePerTurn) this.playedThisTurn.add(sprite.card.name);
         this.notify('card played', { card: sprite.card, targets });
         this.removeCard(sprite.index);
     }
@@ -242,6 +245,11 @@ class MainGame extends Phaser.Scene {
         if (!this.isYourTurn) {
             // Only complain if they actually dragged it somewhere
             if (sprite.y < PLAY_LINE_Y) this.quickTextDisplay(this.dead ? "You're dead..." : "Wait for your turn!");
+            return done();
+        }
+
+        if (card.oncePerTurn && this.playedThisTurn.has(card.name)) {
+            if (sprite.y < PLAY_LINE_Y) this.quickTextDisplay(`Only one ${card.name} per turn!`);
             return done();
         }
 
@@ -279,6 +287,7 @@ class MainGame extends Phaser.Scene {
 
     turnChange(username) {
         this.necroCardPlayed = false;
+        this.playedThisTurn.clear();
         this.whosTurn = username;
         for (const p of Object.values(this.otherPlayers)) p.highlight?.setVisible(p.username == username);
 

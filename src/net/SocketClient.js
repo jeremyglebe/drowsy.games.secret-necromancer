@@ -3,6 +3,8 @@ import { hostRoom, joinRoom } from './Peer.js';
 import HostServer from '../host/HostServer.js';
 import Bot from '../bots/Bot.js';
 
+const BOT_NAMES = ['Merlina', 'Hexley', 'Grimsby', 'Morwen', 'Thistle', 'Quillon', 'Ashgrave', 'Bramble'];
+
 /**
  * The client's connection to the game host. Every player (including the host
  * themself) talks to the HostServer through this same API, so the scenes don't
@@ -15,6 +17,8 @@ class SocketClient {
     static roomCode = null;
     /** The HostServer instance, only set if this client is hosting */
     static server = null;
+    /** Bots this host has added to the lobby, by name */
+    static bots = new Map();
 
     /**
      * Opens a room on the PeerJS signalling server, starts a HostServer in
@@ -63,6 +67,31 @@ class SocketClient {
             const [botServerSide, botClientSide] = createLocalPair(false, true);
             server.addSocket(botServerSide, name);
             new Bot(botClientSide, { delay: 1300, maxPlays: 2 });
+        }
+    }
+
+    /**
+     * Adds a bot player to the lobby (host only). The bot runs in this tab.
+     * @returns {string|null} the bot's name, or null if there's no room
+     */
+    static addBot() {
+        if (!this.server) return null;
+        const taken = this.server.usernames;
+        if (taken.length >= 5) return null;
+        const name = BOT_NAMES.find((n) => !taken.includes(n));
+        const [serverSide, clientSide] = createLocalPair(false, true);
+        this.server.addSocket(serverSide, name, { bot: true });
+        new Bot(clientSide, { delay: 1300 });
+        this.bots.set(name, clientSide);
+        return name;
+    }
+
+    /** Removes a bot from the lobby (host only) */
+    static removeBot(name) {
+        const endpoint = this.bots.get(name);
+        if (endpoint) {
+            endpoint.close();
+            this.bots.delete(name);
         }
     }
 
