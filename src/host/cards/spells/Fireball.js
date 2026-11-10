@@ -2,7 +2,8 @@ import Spell from '../abstract/Spell.js';
 
 export default class Fireball extends Spell {
     constructor() {
-        super("Fireball", "Explosive! Inflict\n10 Damage on all\nother players.", "others");
+        super("Fireball", "Explosive! Inflict\n10 Damage on all\nother players (and\nany monster).", "others");
+        this.cost = 2;
     }
 
     activate(field, caster, targets) {
@@ -15,5 +16,7 @@ export default class Fireball extends Spell {
                 player.takeDamage(damage);
             }
         }
+        // The Eldritch Horror gets singed too
+        if (field.horror) return { slain: field.damageHorror(damage, caster) };
     }
 }

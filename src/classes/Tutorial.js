@@ -38,22 +38,26 @@ export default class Tutorial {
                 highlight: seatBounds,
             },
             {
-                text: "It's your turn! Drag a Bolt from your hand and drop it on a player you suspect. It deals 10-20 damage.\n\n(Not the Grandmaster!)",
+                text: "This is your mana. You make 1 every turn, and whatever you don't spend carries over. The crystal in each card's corner is its cost.\n\nOnly you can see your bank. Saving up looks the same as secretly paying for dark rituals...",
+                highlight: () => [scene.manaText.getBounds(), scene.manaIcon.getBounds()],
+            },
+            {
+                text: "It's your turn! Drag a Bolt from your hand and drop it on a player you suspect. It costs 1 mana and deals 10-20 damage.\n\n(Not the Grandmaster!)",
                 highlight: () => [new Phaser.Geom.Rectangle(270, 525, 840, 190)],
                 waitFor: (event, payload) => event == 'card played' && payload.card.name == 'Bolt',
             },
             {
-                text: "Zap! Most characters only get one Bolt per turn, but every other card is unlimited.\n\nFireball hits EVERY other player for 10, the Grandmaster too. To cast it, drag it into the middle of the table.",
+                text: "Zap! Most characters only get one Bolt per turn. Other cards are only limited by your mana.\n\nFireball (2 mana) hits EVERY other player for 10, the Grandmaster too. To cast it, drag it into the middle of the table.",
                 highlight: () => [scene.playZone.getBounds()],
             },
             {
-                text: "Shields, Robes and Wands are equipment. Drag them onto your character card. Shields block damage, Robes let you dodge Bolts, Wands make your spells hit harder.\n\nTry the Shield, or click Next.",
+                text: "Shields, Robes and Wands are equipment (1 mana each). Drag them onto your character card. Shields block damage, Robes let you dodge Bolts, Wands make your spells hit harder.\n\nTry the Shield, or click Next.",
                 highlight: () => [scene.mainPlayer.characterSprite.getBounds()],
                 waitFor: (event, payload) => event == 'card played' && payload.card.name == 'Shield',
                 allowNext: true,
             },
             {
-                text: "When you're done, click End Turn. You draw a new card at the start of each turn.",
+                text: "When you're done, click End Turn. You draw a new card at the start of each turn.\n\nMana Crystals are free to play and make you 1 more mana every turn. Everyone can see how many you have.",
                 highlight: () => [scene.turnEndButton.rect.getBounds()],
                 waitFor: (event) => event == 'turn end',
             },
@@ -63,7 +67,7 @@ export default class Tutorial {
                 panelY: 370,
             },
             {
-                text: "Necromancy phase! Once per round, the Necromancer's secret ritual takes effect.\n\nWitch Brew deals 30 damage and makes its victim lose a random card. Raise Dead brings a dead player back as the Necromancer's Thrall.",
+                text: "Necromancy phase! Once per round, the Necromancer's secret ritual takes effect.\n\nWitch Brew drains its victim's mana and 2 cards. Eldritch Horror summons a monster that mauls someone every round until it's destroyed. Raise Dead brings back a dead player as a Thrall.\n\nOh, and the Necromancer's Bolts are free. Nobody can tell.",
                 panelY: 370,
             },
             {

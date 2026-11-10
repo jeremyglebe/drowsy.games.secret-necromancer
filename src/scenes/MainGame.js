@@ -4,8 +4,13 @@ import CardSprite from '../classes/CardSprite.js';
 import Tutorial from '../classes/Tutorial.js';
 import TableFx from '../classes/TableFx.js';
 import { makeButton, textStyle } from '../classes/UI.js';
+import { costFor } from '../host/cards/costs.js';
 
 const NECRO_PHASE = '##NECRO##';
+const HORROR = '##HORROR##';
+/** Where the Eldritch Horror lurks */
+const HORROR_X = 640;
+const HORROR_Y = 215;
 /** Cards released above this line count as "played into the middle" */
 const PLAY_LINE_Y = 470;
 const HAND_Y = 620;
@@ -38,6 +43,11 @@ class MainGame extends Phaser.Scene {
         /** How many once-per-turn cards (Bolts) we've played this turn */
         this.playedThisTurn = new Map();
         this.isYourTurn = false;
+        /** Our mana bank and income (only we know the bank) */
+        this.mana = 0;
+        this.income = 1;
+        /** Sprites for the Eldritch Horror, while one is out */
+        this.horror = null;
         this.whosTurn = "";
         this.dead = false;
         this.grandmaster = null;
@@ -95,8 +105,15 @@ class MainGame extends Phaser.Scene {
             }
         });
         client.on('your new card', (card) => this.addCard(card));
+        client.on('your mana', ({ mana, income }) => this.setMana(mana, income));
+        client.on('horror attacks', (info) => this.fx.whenIdle(() => this.onHorrorAttack(info)));
+        client.on('horror slain', (name) => this.fx.whenIdle(() => this.onHorrorSlain(name)));
         client.on('table settings', ({ cardHold }) => { if (cardHold) this.fx.hold = cardHold; });
         client.on('ready status', (status) => this.onReadyStatus(status));
+        client.on('turn skipped', (name) => this.fx.whenIdle(() => {
+            this.quickTextDisplay(name == this.mainPlayer.username ? "You're frozen solid!" : `${name} is frozen solid!`);
+            this.fx.popText(name, 'skipped', '#a8e8ff');
+        }));
         client.on('all ready', () => this.hideSetup());
         client.on('turn start', (username) => this.turnChange(username));
         client.on('spell played', this.onSpellPlayed.bind(this));
@@ -128,13 +145,26 @@ class MainGame extends Phaser.Scene {
         objs.push(this.add.text(640, 135, "Your cards for this game", textStyle(28, '#ffe680')).setOrigin(0.5).setDepth(depth + 1));
 
         // Big copies of your role and character
-        for (const [card, x] of [[me.role, 340], [me.character, 520]]) {
+        [[me.role, 340, "roleback_graphic"], [me.character, 520, "charback_graphic"]].forEach(([card, x, back], i) => {
             const big = new CardSprite(x, 315, card, depth + 1, this, 2.6);
             big.setDraggable(false, true);
             big.specEmitter.on('hover', this.showTooltip, this);
             big.specEmitter.on('unhover', this.hideTooltip, this);
             objs.push(big);
-        }
+            // Dealt face down, then flipped over
+            big.graphic.setTexture(back);
+            big.nameText.setVisible(false);
+            big.descripText.setVisible(false);
+            this.tweens.chain({
+                targets: big.graphic,
+                tweens: [
+                    { scaleX: 0, duration: 160, delay: 450 + i * 350, ease: 'Sine.easeIn',
+                        onComplete: () => big.graphic.setTexture(card.name + "_graphic") },
+                    { scaleX: 2.6, duration: 160, ease: 'Sine.easeOut',
+                        onComplete: () => { big.nameText.setVisible(true); big.descripText.setVisible(true); } },
+                ],
+            });
+        });
 
         const goal = {
             Grandmaster: "You're the Grandmaster. Everyone knows it. Find and destroy the Necromancer.",
@@ -184,19 +214,31 @@ class MainGame extends Phaser.Scene {
         const gm = this.otherPlayers[username];
         if (gm && gm.usernameText) gm.usernameText.setColor('#ff88ff').setText(username + " (GM)");
         if (gm && gm.roleIcon) gm.roleIcon.setTexture("Grandmaster_graphic");
+        // A little castle next to the Grandmaster's name
+        if (gm && gm.usernameText) {
+            const t = gm.usernameText, left = gm.seat.side == 'left';
+            this.add.sprite(left ? t.x + t.width + 14 : t.x - t.width - 14, t.y + 12, "icon_rook").setScale(1.6);
+        } else if (username == this.mainPlayer?.username) {
+            this.add.sprite(70, 488, "icon_rook").setScale(1.6);
+        }
     }
 
     onSpellPlayed(obj) {
         let message = null;
         if (obj.caster == NECRO_PHASE && obj.cardname == 'Raise Dead') {
             message = obj.target == this.mainPlayer.username ? "You rise from the dead!" : `${obj.target} rises from the dead\nto serve the Necromancer!`;
+        } else if (obj.caster == NECRO_PHASE && obj.cardname == 'Eldritch Horror') {
+            message = "Dark magic! An Eldritch Horror\ncrawls onto the table!";
         } else if (obj.caster == NECRO_PHASE) {
-            message = `Dark magic! ${obj.cardname}\nstrikes ${obj.target == this.mainPlayer.username ? 'you' : obj.target}!`;
+            const victim = !obj.target ? 'everyone' : obj.target == this.mainPlayer.username ? 'you' : obj.target;
+            message = `Dark magic! ${obj.cardname}\nstrikes ${victim}!`;
         } else if (obj.caster != this.mainPlayer.username) {
-            const who = (name) => name == this.mainPlayer.username ? 'you' : name;
+            const who = (name) => name == this.mainPlayer.username ? 'you' : name == HORROR ? 'the Horror' : name;
             if (['Shield', 'Robe', 'Wand'].includes(obj.cardname)) message = `${obj.caster} equipped a ${obj.cardname}`;
             else if (obj.target) message = `${obj.caster} cast ${obj.cardname}\non ${who(obj.target)}` + (obj.dodged ? '... dodged!' : '');
             else message = `${obj.caster} cast ${obj.cardname}!`;
+        } else if (obj.slain) {
+            message = "You destroyed the Eldritch Horror!";
         } else if (obj.dodged) {
             message = `${obj.target} dodged your Bolt!`;
         }
@@ -220,11 +262,13 @@ class MainGame extends Phaser.Scene {
         }
         switch (play.cardname) {
             case 'Bolt':
-                if (play.dodged) fx.popText(play.target, 'dodged!', '#a8d8ff');
+                if (play.target == HORROR) this.flashHorror();
+                else if (play.dodged) fx.popText(play.target, 'dodged!', '#a8d8ff');
                 else fx.flash(play.target);
                 break;
             case 'Fireball':
                 fx.shake();
+                this.flashHorror(0xff8833);
                 for (const name of [this.mainPlayer.username, ...Object.keys(this.otherPlayers)]) {
                     const alive = name == this.mainPlayer.username ? !this.dead : this.otherPlayers[name].health > 0;
                     if (name != play.caster && alive) fx.flash(name, 0xff8833);
@@ -232,6 +276,20 @@ class MainGame extends Phaser.Scene {
                 break;
             case 'Witch Brew':
                 fx.flash(play.target, 0x9b30ff);
+                break;
+            case 'Eldritch Horror':
+                fx.shake();
+                for (const name of [this.mainPlayer.username, ...Object.keys(this.otherPlayers)]) fx.flash(name, 0x6a0dad);
+                break;
+            case 'Healing Potion':
+                fx.flash(play.target, 0x55ff77);
+                break;
+            case 'Freeze':
+                fx.flash(play.target, 0xa8e8ff);
+                fx.popText(play.target, 'Frozen!', '#a8e8ff');
+                break;
+            case 'Loot':
+                fx.popText(play.target, play.empty ? 'nothing to take' : 'looted!', '#ffe680');
                 break;
             case 'Raise Dead':
                 fx.flash(play.target, 0xb38fd9);
@@ -254,6 +312,114 @@ class MainGame extends Phaser.Scene {
 
         me.healthText = this.add.text(1160, 545, `${me.health}/100`, textStyle(34)).setOrigin(0.5);
         me.defenseText = this.add.text(1160, 590, "", textStyle(18, '#a8d8ff')).setOrigin(0.5);
+
+        // Our mana. Nobody else gets to see this number.
+        this.manaIcon = this.add.sprite(1160, 502, "icon_crystal").setScale(0.9);
+        this.manaText = this.add.text(1172, 502, "", textStyle(22, '#a8c8ff')).setOrigin(0.5);
+        this.setMana(this.mana, this.income);
+    }
+
+    setMana(mana, income = this.income) {
+        this.mana = mana;
+        this.income = income;
+        if (this.manaText) {
+            this.manaText.setText(`${mana} mana (+${income}/turn)`);
+            this.manaIcon.x = this.manaText.x - this.manaText.width / 2 - 16;
+        }
+        // Dim the cards we can't afford right now
+        for (const sprite of this.hand) sprite.setAlpha(this.costOf(sprite.card) > mana ? 0.55 : 1);
+    }
+
+    /** What a card costs us (the Necromancer's Bolts are free) */
+    costOf(card) {
+        return costFor(card, this.mainPlayer?.role?.name);
+    }
+
+    /* ---------------------------------------------------------------- */
+    /* The Eldritch Horror                                               */
+    /* ---------------------------------------------------------------- */
+
+    /** Shows, updates or removes the monster to match the host */
+    renderHorror(horror) {
+        if (!horror) {
+            if (this.horror && !this.horror.dying) this.removeHorror();
+            return;
+        }
+        if (!this.horror) {
+            const frame = this.add.rectangle(HORROR_X, HORROR_Y, 124, 118, 0x14001f, 0.9).setStrokeStyle(3, 0x9b30ff).setDepth(20);
+            const sprite = this.add.sprite(HORROR_X, HORROR_Y, "horror").setScale(2.7).setDepth(21);
+            const label = this.add.text(HORROR_X, HORROR_Y + 74, "", textStyle(18, '#d9a8ff')).setOrigin(0.5).setDepth(21);
+            for (const o of [frame, sprite]) o.setScale(0.01 * o.scaleX);
+            this.tweens.add({ targets: frame, scaleX: 1, scaleY: 1, duration: 500, ease: 'Back.easeOut' });
+            this.tweens.add({ targets: sprite, scaleX: 2.7, scaleY: 2.7, duration: 500, ease: 'Back.easeOut' });
+            this.horror = { frame, sprite, label, objects: [frame, sprite, label] };
+            frame.setInteractive();
+            frame.on('pointerover', () => this.showHorrorTip());
+            frame.on('pointerout', () => this.hideTooltip());
+        }
+        this.horror.label.setText(`Eldritch Horror ${Math.max(0, horror.health)}/${horror.max}`);
+    }
+
+    showHorrorTip() {
+        if (CardSprite.dragging || CardSprite.anyCardIsEnlarged) return;
+        this.tooltipText.setText("Eldritch Horror\n\nMauls someone at random (20-30) every Necromancy phase, even whoever summoned it. Bolt it or Fireball it to destroy it.");
+        this.tooltipBg.setSize(380, this.tooltipText.height + 30);
+        this.tooltipBg.setVisible(true);
+        this.tooltipText.setVisible(true);
+    }
+
+    removeHorror() {
+        const h = this.horror;
+        if (!h) return;
+        h.dying = true;
+        this.tweens.add({
+            targets: h.objects,
+            alpha: 0,
+            duration: 600,
+            onComplete: () => {
+                for (const o of h.objects) o.destroy();
+                if (this.horror == h) this.horror = null;
+            },
+        });
+    }
+
+    flashHorror(color = 0xff3333) {
+        const sprite = this.horror?.sprite;
+        if (!sprite || this.horror.dying) return;
+        sprite.setTintFill(color);
+        this.time.delayedCall(140, () => sprite.clearTint());
+    }
+
+    onHorrorAttack({ field, target }) {
+        const h = this.horror;
+        const land = () => {
+            this.fx.flash(target, 0x6a0dad);
+            this.checkSync({ player: null, field }, true);
+        };
+        if (!h) return land();
+        const to = this.fx.playerPos(target);
+        this.fx.active++;
+        this.tweens.chain({
+            targets: h.sprite,
+            tweens: [
+                { scale: 3.2, duration: 250, ease: 'Sine.easeOut' },
+                { x: to.x, y: to.y, duration: 260, ease: 'Cubic.easeIn' },
+                {
+                    x: HORROR_X, y: HORROR_Y, scale: 2.7, duration: 400, ease: 'Cubic.easeOut',
+                    onStart: () => {
+                        this.fx.shake();
+                        land();
+                    },
+                    onComplete: () => this.fx.done(),
+                },
+            ],
+        });
+        this.quickTextDisplay(target == this.mainPlayer.username ? "The Horror mauls you!" : `The Horror mauls ${target}!`);
+    }
+
+    onHorrorSlain(name) {
+        if (name != this.mainPlayer.username) this.quickTextDisplay(`${name} destroyed the Eldritch Horror!`);
+        this.removeHorror();
     }
 
     placeOtherPlayers() {
@@ -326,7 +492,10 @@ class MainGame extends Phaser.Scene {
 
     addCard(card) {
         this.mainPlayer.hand.push(card);
-        const sprite = new CardSprite(640, HAND_Y, card, 10, this, 2);
+        // The badge shows what it costs us, not what it says on the card
+        const shown = card.cost == null ? card : { ...card, cost: this.costOf(card) };
+        const sprite = new CardSprite(640, HAND_Y, shown, 10, this, 2);
+        if (this.costOf(card) > this.mana) sprite.setAlpha(0.55);
         sprite.specEmitter.on("cardDragEnd", this.checkOverlapTarget, this);
         sprite.specEmitter.on('hover', this.showTooltip, this);
         sprite.specEmitter.on('unhover', this.hideTooltip, this);
@@ -341,6 +510,7 @@ class MainGame extends Phaser.Scene {
             name: sprite.card.name,
             targets,
         });
+        this.setMana(this.mana - this.costOf(sprite.card));
         if (sprite.card.oncePerTurn) this.playedThisTurn.set(sprite.card.name, (this.playedThisTurn.get(sprite.card.name) || 0) + 1);
         this.notify('card played', { card: sprite.card, targets });
         this.removeCard(sprite.index);
@@ -380,6 +550,17 @@ class MainGame extends Phaser.Scene {
             return done();
         }
 
+        if (this.costOf(card) > this.mana) {
+            if (sprite.y < PLAY_LINE_Y) this.quickTextDisplay(`Not enough mana! (${card.name} costs ${this.costOf(card)})`);
+            return done();
+        }
+
+        // Bolting the monster
+        if (card.name == 'Bolt' && this.horror && !this.horror.dying
+            && Phaser.Geom.Rectangle.Overlaps(bounds, this.horror.frame.getBounds())) {
+            return this.playCard(sprite, HORROR);
+        }
+
         if (card.targetType == 'dead') {
             const target = this.opponentUnder(bounds, true);
             if (!target) {
@@ -394,10 +575,33 @@ class MainGame extends Phaser.Scene {
             return this.playCard(sprite, target);
         }
 
+        if (card.type == 'necromancy' && card.targetType == 'all') {
+            if (sprite.y >= PLAY_LINE_Y) return done();
+            if (this.horror && !this.horror.dying) {
+                this.quickTextDisplay("Your Horror is already out there");
+                return done();
+            }
+            if (this.necroCardPlayed) {
+                this.quickTextDisplay("Only one dark ritual per turn");
+                return done();
+            }
+            this.necroCardPlayed = true;
+            return this.playCard(sprite, null);
+        }
+
+        if (card.targetType == 'any') {
+            // Anyone alive: an opponent, or yourself (your card or the table)
+            const target = this.opponentUnder(bounds);
+            if (target) return this.playCard(sprite, target);
+            const onMe = Phaser.Geom.Rectangle.Overlaps(bounds, this.mainPlayer.characterSprite.getBounds());
+            if (onMe || sprite.y < PLAY_LINE_Y) return this.playCard(sprite, this.mainPlayer.username);
+            return done();
+        }
+
         if (card.targetType == 'player') {
             const target = this.opponentUnder(bounds);
             if (!target) return done();
-            if (target == this.master) {
+            if (target == this.master && card.name == 'Bolt') {
                 this.quickTextDisplay("You can't Bolt your master!");
                 return done();
             }
@@ -571,11 +775,17 @@ class MainGame extends Phaser.Scene {
         if (meOnField && !holdTable) {
             if (meOnField.health != me.health && !this.dead) {
                 if (meOnField.health < me.health) this.fx.popText(me.username, `-${me.health - meOnField.health}`);
+                else this.fx.popText(me.username, `+${meOnField.health - me.health}`, '#55ff77');
                 me.health = meOnField.health;
                 me.healthText.setText(`${Math.max(0, me.health)}/100`);
             }
-            this.setDefenseText(me.defenseText, meOnField.items);
+            this.fx.renderStats(me, meOnField.items, 1160, 592, 'center');
             this.fx.renderItems(me.username, me, meOnField.items);
+            this.fx.renderFrozen(me.username, me, meOnField.frozen);
+        }
+        if (!holdTable) this.renderHorror(data.field.horror);
+        if (data.player && data.player.mana != null && data.player.mana != this.mana && !this.isYourTurn) {
+            this.setMana(data.player.mana, data.player.crystals != null ? 1 + data.player.crystals : this.income);
         }
 
         // Our hand: only the full player object from 'sync' has it
@@ -602,11 +812,13 @@ class MainGame extends Phaser.Scene {
             if (holdTable) continue;
             if (truth.health != p.health && p.health > 0) {
                 if (truth.health < p.health) this.fx.popText(name, `-${p.health - Math.max(0, truth.health)}`);
+                else this.fx.popText(name, `+${truth.health - p.health}`, '#55ff77');
                 p.health = truth.health;
                 p.healthText.setText(`${Math.max(0, truth.health)}/100`);
             }
-            this.setDefenseText(p.defenseText, truth.items);
+            this.fx.renderStats(p, truth.items, p.defenseText.x, p.defenseText.y + 9, p.seat.side, truth.crystals);
             this.fx.renderItems(name, p, truth.items);
+            this.fx.renderFrozen(name, p, truth.frozen);
         }
     }
 }

@@ -17,6 +17,7 @@
  * 'the gmaster bro reveals himself': username of the Grandmaster (to all)
  * 'ready status': { ready: string[], waiting: string[] } during setup (to all)
  * 'all ready': everyone readied up, cards are about to be dealt (to all)
+ * 'turn skipped': username of a Frozen player whose turn was skipped (to all)
  * 'sync': { field, player } (to each client, periodically)
  * 'death': username (to all)
  * 'game over': { winners: string[], roles: {username: roleName} } (to all)

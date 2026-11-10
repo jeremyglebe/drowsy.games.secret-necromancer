@@ -1,9 +1,12 @@
 /** Small UI helpers shared by the scenes */
 
+/** Tints for the button variants (the default green ones use the plaque as drawn) */
+const BUTTON_TINTS = { 0x88FF88: null, 0xb36bff: 0xd8b8ff, 0x888888: 0xb8b8b8, 0x8899aa: 0xc8d8e8 };
+
 /**
- * Creates a clickable button (translucent rectangle + label), in the same
- * style the original jam build used.
- * @returns {{ rect: Phaser.GameObjects.Rectangle, text: Phaser.GameObjects.Text, setEnabled: (b: boolean) => void, setVisible: (b: boolean) => void }}
+ * Creates a clickable button: the wooden plaque from the jam art, stretched
+ * to fit (its rope border and corners stay crisp), with a label on top.
+ * @returns {{ rect: Phaser.GameObjects.NineSlice, text: Phaser.GameObjects.Text, setEnabled: (b: boolean) => void, setVisible: (b: boolean) => void }}
  */
 export function makeButton(scene, x, y, width, height, label, onClick, color = 0x88FF88) {
     const text = scene.add.text(x, y, label, {
@@ -14,15 +17,20 @@ export function makeButton(scene, x, y, width, height, label, onClick, color = 0
     }).setOrigin(0.5);
     // Grow to fit the label so text never touches the edges
     const paddedWidth = Math.max(width, text.width + 48);
-    const rect = scene.add.rectangle(x, y, paddedWidth, height, color, 0.5)
+    // The plaque art is 41x18 with a ~6px border. Drawn at 2x so the rope
+    // border and corner vines read at the same chunky size as the cards.
+    const PIXEL = 2;
+    const rect = scene.add.nineslice(x, y, 'plaque', undefined, paddedWidth / PIXEL, height / PIXEL, 6, 6, 6, 6)
         .setOrigin(0.5)
-        .setStrokeStyle(2, 0xffffff, 0.6)
+        .setScale(PIXEL)
         .setInteractive({ useHandCursor: true });
+    const tint = BUTTON_TINTS[color] ?? null;
+    if (tint) rect.setTint(tint);
     // Draw the label above its box
     text.setDepth(rect.depth + 1);
     let enabled = true;
-    rect.on('pointerover', () => enabled && rect.setFillStyle(color, 0.75));
-    rect.on('pointerout', () => rect.setFillStyle(color, enabled ? 0.5 : 0.2));
+    rect.on('pointerover', () => { if (enabled) { rect.setScale(PIXEL * 1.04); text.setScale(1.04); } });
+    rect.on('pointerout', () => { rect.setScale(PIXEL); text.setScale(1); });
     rect.on('pointerdown', (pointer) => {
         if (enabled && pointer.leftButtonDown()) onClick();
     });
@@ -31,8 +39,9 @@ export function makeButton(scene, x, y, width, height, label, onClick, color = 0
         text,
         setEnabled(b) {
             enabled = b;
-            rect.setFillStyle(color, b ? 0.5 : 0.2);
+            rect.setAlpha(b ? 1 : 0.45);
             text.setAlpha(b ? 1 : 0.5);
+            if (!b) { rect.setScale(PIXEL); text.setScale(1); }
         },
         setVisible(b) {
             rect.setVisible(b);

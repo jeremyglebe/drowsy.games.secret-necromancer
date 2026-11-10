@@ -1,3 +1,6 @@
+/** Mana everyone makes per turn before crystals */
+export const BASE_INCOME = 1;
+
 export default class Player {
     /**
      * @param {string} username
@@ -26,6 +29,18 @@ export default class Player {
         this.hand = [];
         /** List of item cards the player has equipped */
         this.items = [];
+        /**
+         * Banked mana. Private: only the player knows how much they have, so
+         * nobody can tell saving up from secretly paying for dark rituals.
+         */
+        this.mana = 0;
+        /** Mana Crystals played. Public: everyone can see your income. */
+        this.crystals = 0;
+    }
+
+    /** Mana gained at the start of each turn */
+    get income() {
+        return BASE_INCOME + this.crystals;
     }
 
     calcStats() {

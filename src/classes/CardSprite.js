@@ -6,6 +6,9 @@ const DESC_X = -20;        // left edge of the inside of the description box
 const DESC_WIDTH = 40;     // usable width inside the description box
 const DESC_Y = 18;         // top edge of the description box
 const ENLARGED_SCALE = 7;
+/** Mana cost badge, top left corner */
+const COST_X = -20;
+const COST_Y = -35;
 
 /**
  * The client side version of a card: the card data from the host plus the
@@ -69,8 +72,24 @@ class CardSprite {
             resolution: 3,
         }).setOrigin(0, 0);
 
+        // Mana cost badge (only cards you can cast have one)
+        if (this.card.cost != null) {
+            this.costIcon = this.scene.add.sprite(0, 0, "icon_crystal");
+            this.costText = this.scene.add.text(0, 0, String(this.card.cost), {
+                fontFamily: 'monospace',
+                fontStyle: 'bold',
+                color: '#ffffff',
+                stroke: '#000000',
+                resolution: 3,
+            }).setOrigin(0.5, 0.5);
+        }
+
         this.layout(x, y, this.scale);
         this.setDepth(this.depth);
+    }
+
+    get badge() {
+        return this.costIcon ? [this.costIcon, this.costText] : [];
     }
 
     /** Positions and sizes the art and text for a given location and scale */
@@ -78,7 +97,8 @@ class CardSprite {
         this.graphic.setPosition(x, y).setScale(scale);
         this.nameText.setPosition(x, y + NAME_Y * scale).setFontSize(Math.max(1, 6 * scale));
         // Long names (Professor Mittens) shrink to fit the banner
-        const maxWidth = 46 * scale;
+        // (the inside of the narrowest banner, on spell cards, is ~40 card pixels)
+        const maxWidth = 40 * scale;
         if (this.nameText.width > maxWidth) {
             this.nameText.setFontSize(Math.max(1, 6 * scale * maxWidth / this.nameText.width));
         }
@@ -86,6 +106,11 @@ class CardSprite {
         // Long lines shrink to stay inside the box
         if (this.descripText.width > DESC_WIDTH * scale) {
             this.descripText.setFontSize(Math.max(1, 3.3 * scale * DESC_WIDTH * scale / this.descripText.width));
+        }
+        if (this.costIcon) {
+            this.costIcon.setPosition(x + COST_X * scale, y + COST_Y * scale).setScale(scale * 0.42);
+            this.costText.setPosition(x + COST_X * scale, y + (COST_Y + 1) * scale)
+                .setFontSize(Math.max(1, 7 * scale)).setStroke('#000000', Math.max(1, 1.2 * scale));
         }
     }
 
@@ -147,6 +172,7 @@ class CardSprite {
         this.graphic.setAlpha(alpha);
         this.nameText.setAlpha(alpha);
         this.descripText.setAlpha(alpha);
+        for (const o of this.badge) o.setAlpha(alpha);
     }
 
     setDepth(depth) {
@@ -158,6 +184,7 @@ class CardSprite {
         this.graphic.depth = depth;
         this.nameText.depth = depth + 0.1;
         this.descripText.depth = depth + 0.1;
+        for (const o of this.badge) o.depth = depth + 0.2;
     }
 
     /** Centers and enlarges the card so it can be read */
@@ -185,6 +212,7 @@ class CardSprite {
         this.graphic.destroy();
         this.nameText.destroy();
         this.descripText.destroy();
+        for (const o of this.badge) o.destroy();
     }
 }
 

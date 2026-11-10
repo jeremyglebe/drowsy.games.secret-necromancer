@@ -59,6 +59,8 @@ class SocketClient {
             roles,
             turnOrder: [username, ...bots],
             startingHands: { [username]: ['Bolt', 'Fireball', 'Shield', 'Bolt', 'Bolt'] },
+            // Enough for a Bolt and a Shield on the first turn
+            startingMana: { [username]: 1 },
         });
         server.tableSettings = { cardHold: settings.cardHold };
         const [serverSide, clientSide] = createLocalPair(false, true);

@@ -43,6 +43,7 @@ export default class TableFx {
     /** Center of a player's character card (or the hand for us) */
     playerPos(name) {
         const s = this.scene;
+        if (name == '##HORROR##') return { x: 640, y: 215 };
         if (name == s.mainPlayer?.username) {
             const b = s.mainPlayer.characterSprite.getBounds();
             return { x: b.centerX, y: b.centerY };
@@ -79,6 +80,53 @@ export default class TableFx {
             const { x, y } = this.itemSlot(name, i);
             return this.scene.add.sprite(x, y, itemName + "_graphic").setScale(ICON_SCALE).setDepth(5);
         });
+    }
+
+    /**
+     * The little stat line under a player's health: shield icon with how
+     * much damage they block, sword icon with their bonus damage, and how
+     * often they dodge. align is 'left', 'right' or 'center'.
+     */
+    renderStats(holder, items = [], x, y, align, crystals = 0) {
+        const count = (name) => items.filter((i) => i.name == name).length;
+        const key = [count('Shield'), count('Robe'), count('Wand'), crystals].join();
+        if (holder.statKey == key) return;
+        holder.statKey = key;
+        holder.statLine?.destroy();
+        if (holder.defenseText) holder.defenseText.setText('');
+        const parts = [];
+        if (count('Shield')) parts.push(['icon_shield', `${Math.min(60, count('Shield') * 15)}%`]);
+        if (count('Wand')) parts.push(['icon_sword', `+${count('Wand') * 5}`]);
+        if (count('Robe')) parts.push([null, `${Math.min(60, count('Robe') * 20)}% dodge`]);
+        // Mana Crystals are public: everyone can see your income
+        if (crystals) parts.push(['icon_crystal', `+${crystals}`]);
+        if (!parts.length) return;
+        const line = this.scene.add.container(x, y);
+        let cx = 0;
+        for (const [icon, text] of parts) {
+            if (icon) {
+                line.add(this.scene.add.sprite(cx, 0, icon).setOrigin(0, 0.5).setScale(icon == 'icon_crystal' ? 0.55 : 1.2));
+                cx += 18;
+            }
+            const label = this.scene.add.text(cx, 0, text, textStyle(16, '#a8d8ff')).setOrigin(0, 0.5);
+            line.add(label);
+            cx += label.width + 10;
+        }
+        const width = cx - 10;
+        line.x = align == 'right' ? x - width : align == 'center' ? x - width / 2 : x;
+        holder.statLine = line;
+    }
+
+    /** Shows the ice shards next to a frozen player */
+    renderFrozen(name, holder, frozen) {
+        if (!!frozen == !!holder.frozenIcon) return;
+        if (!frozen) {
+            holder.frozenIcon.destroy();
+            holder.frozenIcon = null;
+            return;
+        }
+        const { x, y } = this.playerPos(name);
+        holder.frozenIcon = this.scene.add.sprite(x + 30, y - 45, "icon_ice").setScale(0.9).setDepth(6);
     }
 
     /* ---------------------------------------------------------------- */
@@ -137,7 +185,7 @@ export default class TableFx {
             const slot = this.itemSlot(play.caster, holder?.itemNames?.length ?? 0);
             return { ...slot, scale: ICON_SCALE, alpha: 1 };
         }
-        if (play.cardname == 'Fireball') {
+        if (play.cardname == 'Fireball' || play.cardname == 'Eldritch Horror') {
             // Bursts in place
             return { x: STAGE_X, y: STAGE_Y, scale: STAGE_SCALE * 1.6, alpha: 0 };
         }

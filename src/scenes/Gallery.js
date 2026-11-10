@@ -15,18 +15,24 @@ import Fireball from '../host/cards/spells/Fireball.js';
 import Shield from '../host/cards/items/Shield.js';
 import Robe from '../host/cards/items/Robe.js';
 import Wand from '../host/cards/items/Wand.js';
+import HealingPotion from '../host/cards/spells/HealingPotion.js';
+import Freeze from '../host/cards/spells/Freeze.js';
+import ManaCrystal from '../host/cards/spells/ManaCrystal.js';
+import Loot from '../host/cards/spells/Loot.js';
+import EldritchHorror from '../host/cards/necromancy/EldritchHorror.js';
 import ForgetfulPotion from '../host/cards/necromancy/ForgetfulPotion.js';
 import RaiseDead from '../host/cards/necromancy/RaiseDead.js';
 
-const SCALE = 1.8;
-const STEP = 112;
+const SCALE = 1.45;
+const STEP = 92;
 
 /** Every card in the game, laid out so you can read them before playing */
 const SECTIONS = [
-    { title: "Characters", y: 235, x: 70, cards: () => [new Bacon(), new Lilium(), new Tiny(), new Mittens(), new Ember()] },
-    { title: "Roles", y: 235, x: 700, cards: () => [new Grandmaster(), new Sorcerer(), new Necromancer(), new Thrall()] },
-    { title: "Spells & Equipment", y: 510, x: 70, cards: () => [new Bolt(), new Fireball(), new Shield(), new Robe(), new Wand()] },
-    { title: "Dark Arts (Necromancer only)", y: 510, x: 700, cards: () => [new ForgetfulPotion(), new RaiseDead()] },
+    { title: "Characters", y: 170, x: 70, cards: () => [new Bacon(), new Lilium(), new Tiny(), new Mittens(), new Ember()] },
+    { title: "Roles", y: 170, x: 700, cards: () => [new Grandmaster(), new Sorcerer(), new Necromancer(), new Thrall()] },
+    { title: "Spells", y: 380, x: 70, cards: () => [new Bolt(), new Fireball(), new HealingPotion(), new Freeze(), new ManaCrystal(), new Loot()] },
+    { title: "Equipment", y: 590, x: 70, cards: () => [new Shield(), new Robe(), new Wand()] },
+    { title: "Dark Arts (Necromancer only)", y: 590, x: 700, cards: () => [new ForgetfulPotion(), new RaiseDead(), new EldritchHorror()] },
 ];
 
 class Gallery extends Phaser.Scene {
@@ -37,11 +43,13 @@ class Gallery extends Phaser.Scene {
 
     create() {
         CardSprite.anyCardIsEnlarged = false;
-        this.add.sprite(0, 0, "gamebackground_graphic").setOrigin(0, 0);
-        this.add.text(640, 40, "All the Cards", textStyle(36)).setOrigin(0.5);
+        // The first version of the portal from the jam, finally getting used
+        this.add.sprite(0, 0, "gallery_graphic").setOrigin(0, 0);
+        this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.35);
+        this.add.text(640, 34, "All the Cards", textStyle(34)).setOrigin(0.5);
 
         for (const section of SECTIONS) {
-            this.add.text(section.x - 20, section.y - 130, section.title, textStyle(22, '#ffe680')).setOrigin(0, 0.5);
+            this.add.text(section.x - 20, section.y - 92, section.title, textStyle(20, '#ffe680')).setOrigin(0, 0.5);
             section.cards().forEach((card, i) => {
                 const sprite = new CardSprite(section.x + 30 + i * STEP, section.y, card, 1, this, SCALE);
                 sprite.setDraggable(false, true);
@@ -54,11 +62,11 @@ class Gallery extends Phaser.Scene {
         }
 
         // Card details, readable size
-        this.infoBg = this.add.rectangle(640, 655, 900, 70, 0x1a0026, 0.9).setStrokeStyle(2, 0xb36bff).setDepth(50);
-        this.info = this.add.text(640, 655, "", { ...textStyle(18), wordWrap: { width: 860 } }).setOrigin(0.5).setDepth(51);
+        this.infoBg = this.add.rectangle(640, 690, 1100, 44, 0x1a0026, 0.9).setStrokeStyle(2, 0xb36bff).setDepth(50);
+        this.info = this.add.text(640, 690, "", { ...textStyle(17), wordWrap: { width: 1080 } }).setOrigin(0.5).setDepth(51);
         this.hideInfo();
 
-        makeButton(this, 110, 40, 160, 46, "Back", () => this.scene.start("Connect"));
+        makeButton(this, 100, 34, 140, 44, "Back", () => this.scene.start("Connect"));
     }
 
     setInfoVisible(visible) {
