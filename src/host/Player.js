@@ -1,5 +1,10 @@
 /** Mana everyone makes per turn before crystals */
 export const BASE_INCOME = 1;
+/** Everyone starts with this much health */
+export const MAX_HEALTH = 40;
+/** Most Shields / Robes that count */
+const MAX_ARMOR = 3;
+const MAX_DODGE = 3;
 
 export default class Player {
     /**
@@ -19,11 +24,16 @@ export default class Player {
         this.role = role;
         /** What character the player is */
         this.character = character;
-        /** Health of the player, out of 100 */
-        this.health = 100;
-        /** Stats, recalculated from items whenever used */
-        this.defense = 0;
-        this.evasion = 0;
+        /** Health of the player */
+        this.health = MAX_HEALTH;
+        this.maxHealth = MAX_HEALTH;
+        /**
+         * Stats from equipment: armor blocks that much from every hit, dodge
+         * is how many Robes (dodge Bolts on 7 - dodge or more), focus is
+         * added to your damage rolls.
+         */
+        this.armor = 0;
+        this.dodge = 0;
         this.focus = 0;
         /** List of cards in the player's hand */
         this.hand = [];
@@ -44,18 +54,23 @@ export default class Player {
     }
 
     calcStats() {
-        this.defense = 0;
-        this.evasion = 0;
-        this.focus = 0;
+        const total = { armor: 0, dodge: 0, focus: 0 };
         for (const item of this.items) {
-            item.activate(this);
+            for (const [stat, amount] of Object.entries(item.stats || {})) total[stat] = (total[stat] || 0) + amount;
         }
+        this.armor = Math.min(MAX_ARMOR, total.armor);
+        this.dodge = Math.min(MAX_DODGE, total.dodge);
+        this.focus = total.focus;
     }
 
-    /** Applies damage reduced by defense. Returns damage actually taken. */
-    takeDamage(amount) {
-        this.calcStats();
-        let damage = amount - Math.ceil(amount * this.defense);
+    /**
+     * Applies damage after armor and abilities. Returns damage actually taken.
+     * @param {object} tags what kind of damage it is ({ fire, dodgeable })
+     */
+    takeDamage(amount, tags = {}) {
+        // Ember's Fireproof
+        if (tags.fire && this.character?.fireproof) return 0;
+        let damage = amount - this.armor;
         // Tiny's Thick Skin
         damage = Math.max(0, damage - (this.character?.damageReduction ?? 0));
         this.health -= damage;

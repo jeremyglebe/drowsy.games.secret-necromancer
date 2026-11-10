@@ -16,11 +16,11 @@
  * 'your mana': { mana, income } after it changes
  *     Sent to: that player only (mana banks are secret)
  *
- * 'horror attacks': the Eldritch Horror mauled someone
- *     Sent to: all. Argument: { field, target, saved }
+ * 'encounter acts': the encounter in the middle played its card
+ *     Sent to: all. Argument: { field, name, cardname, target, rolls, saved }
  *
- * 'horror slain': the Eldritch Horror was destroyed
- *     Sent to: all. Argument: username who finished it
+ * 'encounter slain': the encounter was destroyed
+ *     Sent to: all. Argument: { name, by }
  *
  * 'turn start': a new turn is starting
  *     Sent to: all. Argument: username whose turn it is, or '##NECRO##' for
@@ -42,11 +42,11 @@ import CharDeck from './cards/decks/CharDeck.js';
 import MainDeck from './cards/decks/MainDeck.js';
 import NecroDeck from './cards/decks/NecroDeck.js';
 import { costFor } from './cards/costs.js';
+import { makeCard, runCard } from './cards/cards.js';
+import { ENCOUNTER } from './cards/effects.js';
 
 export const NECRO_PHASE = '##NECRO##';
-/** Target name for Bolting the Eldritch Horror */
-export const HORROR = '##HORROR##';
-const HORROR_HP = 50;
+export { ENCOUNTER };
 
 export default class Field {
 
@@ -68,8 +68,11 @@ export default class Field {
         this.necroCard = null;
         /** Set when the game has ended, stops all further turns */
         this.over = false;
-        /** The Eldritch Horror on the table, if any: { health, max } */
-        this.horror = null;
+        /**
+         * Whatever is in the middle of the table (the Eldritch Horror), if
+         * anything: { name, image, health, max, card }
+         */
+        this.encounter = null;
         /** How many of each once-per-turn card were played this turn */
         this.playedThisTurn = new Map();
 
@@ -150,7 +153,7 @@ export default class Field {
      * hand contents, necromancy cards) removed.
      */
     getCliField() {
-        const cliField = { players: {}, horror: this.horror && { ...this.horror } };
+        const cliField = { players: {}, encounter: this.encounter && { ...this.encounter } };
         for (const [name, ply] of Object.entries(this.players)) {
             const cliPly = {};
             for (const key in ply) {
@@ -184,57 +187,51 @@ export default class Field {
         if (card.type == 'necromancy') {
             if (player.role.name != 'Necromancer' || this.necroCard) return false;
             if (card.targetType == 'all') {
-                // Eldritch Horror goes in the middle, no victim to pick.
-                // Only one monster on the table at a time.
-                if (this.horror) return false;
-                player.hand.splice(index, 1);
-                this.necroCard = card;
-                this.necroCard.target = null;
-                return true;
+                // Summons go in the middle, no victim to pick. Only one
+                // encounter on the table at a time.
+                if (this.encounter) return false;
+            } else {
+                const victim = this.players[targets];
+                if (!victim) return false;
+                // Raise Dead needs a corpse; everything else needs someone alive
+                if ((card.targetType == 'dead') != (victim.health <= 0)) return false;
+                if (card.targetType == 'dead' && victim.role.name == 'Necromancer') return false;
             }
-            const victim = this.players[targets];
-            if (!victim) return false;
-            // Raise Dead needs a corpse; everything else needs someone alive
-            if ((card.targetType == 'dead') != (victim.health <= 0)) return false;
-            if (card.targetType == 'dead' && victim.role.name == 'Necromancer') return false;
+            // Paid now, goes off (anonymously) in the Necromancy phase
             player.hand.splice(index, 1);
             this.spend(player, cost);
             this.necroCard = card;
-            this.necroCard.target = targets;
+            this.necroCaster = username;
+            this.necroTarget = card.targetType == 'all' ? null : targets;
             return true;
         }
 
         if (card.oncePerTurn && (this.playedThisTurn.get(card.name) || 0) >= this.limitFor(player, card)) return false;
 
-        let result = {};
-        if (card.type == 'item') {
-            this.spend(player, cost);
-            player.hand.splice(index, 1);
-            player.items.push(card);
-            player.calcStats();
-        } else {
-            if (targets == HORROR) {
-                // Only Bolts can be aimed at the monster
-                if (card.name != 'Bolt' || !this.horror) return false;
-            } else if (card.targetType == 'player' || (card.targetType == 'any' && targets)) {
-                const target = this.players[targets];
-                if (!target || target.health <= 0) return false;
-                // A Thrall can't Bolt their master (a Fireball is another story)
-                if (card.name == 'Bolt' && player.role.name == 'Thrall' && target.role.name == 'Necromancer') return false;
-            }
-            this.spend(player, cost);
-            result = card.activate(this, username, targets) || {};
-            if (card.oncePerTurn) this.playedThisTurn.set(card.name, (this.playedThisTurn.get(card.name) || 0) + 1);
-            player.hand.splice(index, 1);
-            this.discardCard(card);
+        let target = null;
+        if (targets == ENCOUNTER) {
+            if (!card.hitsEncounter || !this.encounter) return false;
+            target = ENCOUNTER;
+        } else if (card.targetType == 'player' || card.targetType == 'any') {
+            target = targets || (card.targetType == 'any' ? username : null);
+            const victim = this.players[target];
+            if (!victim || victim.health <= 0) return false;
+            // A Thrall can't Bolt their master (a Fireball is another story)
+            if (card.name == 'Bolt' && player.role.name == 'Thrall' && victim.role.name == 'Necromancer') return false;
         }
+
+        this.spend(player, cost);
+        player.hand.splice(index, 1);
+        if (card.oncePerTurn) this.playedThisTurn.set(card.name, (this.playedThisTurn.get(card.name) || 0) + 1);
+        const result = runCard(this, card, username, target);
+        if (card.type != 'item') this.discardCard(card);
 
         this.server.emit('spell played', {
             field: this.getCliField(),
             cardname: name,
             description: card.description,
             caster: username,
-            target: ['player', 'any'].includes(card.targetType) ? (targets || username) : null,
+            target,
             ...result,
             saved: this.collectSaves(),
         });
@@ -291,43 +288,52 @@ export default class Field {
         this.server.emitToUser(username, 'your new card', card);
     }
 
-    summonHorror() {
-        this.horror = { health: HORROR_HP, max: HORROR_HP };
+    /** Puts an encounter in the middle of the table */
+    summon({ name, image, health, card }) {
+        this.encounter = { name, image, health, max: health, card };
     }
 
-    /** Hurts the Eldritch Horror. Returns true if that destroyed it. */
-    damageHorror(amount, by) {
-        if (!this.horror) return false;
-        this.horror.health -= amount;
-        if (this.horror.health > 0) return false;
-        this.horror = null;
-        this.server.emit('horror slain', by);
+    /** Hurts the encounter. Returns true if that destroyed it. */
+    damageEncounter(amount, by) {
+        if (!this.encounter) return false;
+        this.encounter.health -= amount;
+        if (this.encounter.health > 0) return false;
+        const { name } = this.encounter;
+        this.encounter = null;
+        this.server.emit('encounter slain', { name, by });
         return true;
     }
 
-    /** The Eldritch Horror picks someone at random, even its summoner */
-    horrorAttack() {
-        if (!this.horror) return;
-        const living = Object.keys(this.players).filter((n) => this.players[n].health > 0);
-        if (!living.length) return;
-        const target = living[Math.floor(Math.random() * living.length)];
-        this.players[target].takeDamage(20 + Math.floor(Math.random() * 11));
-        this.server.emit('horror attacks', { field: this.getCliField(), target, saved: this.collectSaves() });
+    /** The encounter (if there is one) plays its card. Nobody is the caster. */
+    encounterActs() {
+        if (!this.encounter) return;
+        const { name, card } = this.encounter;
+        const result = runCard(this, makeCard(card), null, null);
+        this.server.emit('encounter acts', {
+            field: this.getCliField(),
+            name,
+            cardname: card,
+            target: result.chosen ?? null,
+            ...result,
+            saved: this.collectSaves(),
+        });
     }
 
     doNecromancy() {
-        // The monster (if there is one) attacks before anything new is cast
-        this.horrorAttack();
+        // The encounter (if there is one) goes before anything new is cast
+        this.encounterActs();
         this.server.update?.();
         if (this.over) return;
         if (this.necroCard) {
-            this.necroCard.activate(this);
+            const card = this.necroCard;
+            const result = runCard(this, card, this.necroCaster, this.necroTarget);
             this.server.emit('spell played', {
                 field: this.getCliField(),
-                cardname: this.necroCard.name,
-                description: this.necroCard.description,
+                cardname: card.name,
+                description: card.description,
                 caster: NECRO_PHASE,
-                target: this.necroCard.target,
+                target: this.necroTarget,
+                ...result,
                 saved: this.collectSaves(),
             });
         }
@@ -361,7 +367,7 @@ export default class Field {
     raise(username) {
         const player = this.players[username];
         if (!player || player.health > 0) return;
-        player.health = 50;
+        player.health = Math.ceil(player.maxHealth / 2);
         player.role = new Thrall();
         this.turnQueue.splice(this.turnQueue.indexOf(NECRO_PHASE), 0, username);
         this.server.onRaised?.(username);

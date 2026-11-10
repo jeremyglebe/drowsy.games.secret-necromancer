@@ -5,12 +5,17 @@ import Tutorial from '../classes/Tutorial.js';
 import TableFx from '../classes/TableFx.js';
 import { makeButton, textStyle } from '../classes/UI.js';
 import { costFor } from '../host/cards/costs.js';
+import { CARDS } from '../host/cards/cards.js';
+import { MAX_HEALTH } from '../host/Player.js';
+
+const hpText = (hp) => `${Math.max(0, hp)}/${MAX_HEALTH}`;
 
 const NECRO_PHASE = '##NECRO##';
-const HORROR = '##HORROR##';
-/** Where the Eldritch Horror lurks */
+/** Target name for whatever is in the middle of the table (the Eldritch Horror) */
+const HORROR = '##ENCOUNTER##';
+/** Where the encounter sits */
 const HORROR_X = 640;
-const HORROR_Y = 215;
+const HORROR_Y = 150;
 /** Cards released above this line count as "played into the middle" */
 const PLAY_LINE_Y = 470;
 const HAND_Y = 620;
@@ -106,8 +111,8 @@ class MainGame extends Phaser.Scene {
         });
         client.on('your new card', (card) => this.addCard(card));
         client.on('your mana', ({ mana, income }) => this.setMana(mana, income));
-        client.on('horror attacks', (info) => this.fx.whenIdle(() => this.onHorrorAttack(info)));
-        client.on('horror slain', (name) => this.fx.whenIdle(() => this.onHorrorSlain(name)));
+        client.on('encounter acts', (info) => this.fx.whenIdle(() => this.onHorrorAttack(info)));
+        client.on('encounter slain', (info) => this.fx.whenIdle(() => this.onHorrorSlain(info)));
         client.on('table settings', ({ cardHold }) => { if (cardHold) this.fx.hold = cardHold; });
         client.on('ready status', (status) => this.onReadyStatus(status));
         client.on('turn skipped', (name) => this.fx.whenIdle(() => {
@@ -238,7 +243,7 @@ class MainGame extends Phaser.Scene {
             else if (obj.target) message = `${obj.caster} cast ${obj.cardname}\non ${who(obj.target)}` + (obj.dodged ? '... dodged!' : '');
             else message = `${obj.caster} cast ${obj.cardname}!`;
         } else if (obj.slain) {
-            message = "You destroyed the Eldritch Horror!";
+            message = "You destroyed the monster!";
         } else if (obj.dodged) {
             message = `${obj.target} dodged your Bolt!`;
         }
@@ -310,7 +315,7 @@ class MainGame extends Phaser.Scene {
         this.add.text(70, 515, me.username, textStyle(20)).setOrigin(0.5);
         this.add.text(185, 515, "your secret role", textStyle(14, '#ffe680')).setOrigin(0.5);
 
-        me.healthText = this.add.text(1160, 545, `${me.health}/100`, textStyle(34)).setOrigin(0.5);
+        me.healthText = this.add.text(1160, 545, hpText(me.health), textStyle(34)).setOrigin(0.5);
         me.defenseText = this.add.text(1160, 590, "", textStyle(18, '#a8d8ff')).setOrigin(0.5);
 
         // Our mana. Nobody else gets to see this number.
@@ -347,22 +352,24 @@ class MainGame extends Phaser.Scene {
         }
         if (!this.horror) {
             const frame = this.add.rectangle(HORROR_X, HORROR_Y, 124, 118, 0x14001f, 0.9).setStrokeStyle(3, 0x9b30ff).setDepth(20);
-            const sprite = this.add.sprite(HORROR_X, HORROR_Y, "horror").setScale(2.7).setDepth(21);
+            const sprite = this.add.sprite(HORROR_X, HORROR_Y, horror.image).setScale(2.7).setDepth(21);
             const label = this.add.text(HORROR_X, HORROR_Y + 74, "", textStyle(18, '#d9a8ff')).setOrigin(0.5).setDepth(21);
             for (const o of [frame, sprite]) o.setScale(0.01 * o.scaleX);
             this.tweens.add({ targets: frame, scaleX: 1, scaleY: 1, duration: 500, ease: 'Back.easeOut' });
             this.tweens.add({ targets: sprite, scaleX: 2.7, scaleY: 2.7, duration: 500, ease: 'Back.easeOut' });
             this.horror = { frame, sprite, label, objects: [frame, sprite, label] };
             frame.setInteractive();
-            frame.on('pointerover', () => this.showHorrorTip());
+            frame.on('pointerover', () => this.showHorrorTip(this.horror.info));
             frame.on('pointerout', () => this.hideTooltip());
         }
-        this.horror.label.setText(`Eldritch Horror ${Math.max(0, horror.health)}/${horror.max}`);
+        this.horror.info = horror;
+        this.horror.label.setText(`${horror.name} ${Math.max(0, horror.health)}/${horror.max}`);
     }
 
-    showHorrorTip() {
-        if (CardSprite.dragging || CardSprite.anyCardIsEnlarged) return;
-        this.tooltipText.setText("Eldritch Horror\n\nMauls someone at random (20-30) every Necromancy phase, even whoever summoned it. Bolt it or Fireball it to destroy it.");
+    showHorrorTip(info) {
+        if (CardSprite.dragging || CardSprite.anyCardIsEnlarged || !info) return;
+        const does = (CARDS[info.card]?.text || '').replace(/\n/g, ' ');
+        this.tooltipText.setText(`${info.name}\n\nEvery Necromancy phase: ${does} Even whoever summoned it.\n\nBolt it or Fireball it to destroy it.`);
         this.tooltipBg.setSize(380, this.tooltipText.height + 30);
         this.tooltipBg.setVisible(true);
         this.tooltipText.setVisible(true);
@@ -390,8 +397,9 @@ class MainGame extends Phaser.Scene {
         this.time.delayedCall(140, () => sprite.clearTint());
     }
 
-    onHorrorAttack({ field, target }) {
+    onHorrorAttack({ field, target, name, rolls }) {
         const h = this.horror;
+        this.fx.showDice(rolls, HORROR_X + 120, HORROR_Y + 45);
         const land = () => {
             this.fx.flash(target, 0x6a0dad);
             this.checkSync({ player: null, field }, true);
@@ -414,11 +422,12 @@ class MainGame extends Phaser.Scene {
                 },
             ],
         });
-        this.quickTextDisplay(target == this.mainPlayer.username ? "The Horror mauls you!" : `The Horror mauls ${target}!`);
+        const monster = name || 'The monster';
+        this.quickTextDisplay(target == this.mainPlayer.username ? `${monster} mauls you!` : `${monster} mauls ${target}!`);
     }
 
-    onHorrorSlain(name) {
-        if (name != this.mainPlayer.username) this.quickTextDisplay(`${name} destroyed the Eldritch Horror!`);
+    onHorrorSlain({ name, by }) {
+        if (by != this.mainPlayer.username) this.quickTextDisplay(`${by} destroyed the ${name}!`);
         this.removeHorror();
     }
 
@@ -435,7 +444,7 @@ class MainGame extends Phaser.Scene {
             p.charSprite.specEmitter.on('hover', this.showTooltip, this);
             p.charSprite.specEmitter.on('unhover', this.hideTooltip, this);
             p.usernameText = this.add.text(tx, y - 60, p.username, style).setOrigin(ox, 0);
-            p.healthText = this.add.text(tx, y - 32, `${p.health}/100`, style).setOrigin(ox, 0);
+            p.healthText = this.add.text(tx, y - 32, hpText(p.health), style).setOrigin(ox, 0);
             p.defenseText = this.add.text(tx, y - 6, "", textStyle(16, '#a8d8ff')).setOrigin(ox, 0);
             p.cardCountIcon = this.add.sprite(side == 'left' ? tx + 15 : tx - 15, y + 40, "backofspell_graphic").setScale(0.6);
             p.cardCountText = this.add.text(side == 'left' ? tx + 35 : tx - 35, y + 30, String(p.hand), style).setOrigin(ox, 0);
@@ -472,15 +481,6 @@ class MainGame extends Phaser.Scene {
             if (!card.large) card.move(left + step * i, HAND_Y);
             card.setDefaultPos(left + step * i, HAND_Y);
         }
-    }
-
-    setDefenseText(textObj, items) {
-        const count = (name) => (items || []).filter((i) => i.name == name).length;
-        const parts = [];
-        if (count('Shield')) parts.push(`-${Math.min(60, count('Shield') * 15)}% dmg`);
-        if (count('Robe')) parts.push(`${Math.min(60, count('Robe') * 20)}% dodge`);
-        if (count('Wand')) parts.push(`+${count('Wand') * 5} dmg`);
-        textObj.setText(parts.join('  '));
     }
 
     removeCard(index = 0) {
@@ -556,7 +556,7 @@ class MainGame extends Phaser.Scene {
         }
 
         // Bolting the monster
-        if (card.name == 'Bolt' && this.horror && !this.horror.dying
+        if (card.hitsEncounter && this.horror && !this.horror.dying
             && Phaser.Geom.Rectangle.Overlaps(bounds, this.horror.frame.getBounds())) {
             return this.playCard(sprite, HORROR);
         }
@@ -578,7 +578,7 @@ class MainGame extends Phaser.Scene {
         if (card.type == 'necromancy' && card.targetType == 'all') {
             if (sprite.y >= PLAY_LINE_Y) return done();
             if (this.horror && !this.horror.dying) {
-                this.quickTextDisplay("Your Horror is already out there");
+                this.quickTextDisplay("There's already a monster out there");
                 return done();
             }
             if (this.necroCardPlayed) {
@@ -681,7 +681,7 @@ class MainGame extends Phaser.Scene {
         const p = this.otherPlayers[username];
         if (!p) return;
         p.health = 50;
-        p.healthText.setText("50/100").setColor('#ffffff');
+        p.healthText.setText(hpText(Math.ceil(MAX_HEALTH / 2))).setColor('#ffffff');
         p.tint = 0xb38fd9;
         p.charSprite.graphic.setTint(p.tint);
         p.roleIcon?.setTexture("Thrall_graphic");
@@ -697,7 +697,7 @@ class MainGame extends Phaser.Scene {
         this.dead = false;
         me.health = 50;
         me.role = role;
-        me.healthText.setText("50/100").setColor('#c9a0ff');
+        me.healthText.setText(hpText(Math.ceil(MAX_HEALTH / 2))).setColor('#c9a0ff');
         me.roleSprite.destroy();
         me.roleSprite = new CardSprite(185, HAND_Y, role, 0, this, 2);
         me.roleSprite.setDraggable(false, true);
@@ -777,13 +777,13 @@ class MainGame extends Phaser.Scene {
                 if (meOnField.health < me.health) this.fx.popText(me.username, `-${me.health - meOnField.health}`);
                 else this.fx.popText(me.username, `+${meOnField.health - me.health}`, '#55ff77');
                 me.health = meOnField.health;
-                me.healthText.setText(`${Math.max(0, me.health)}/100`);
+                me.healthText.setText(hpText(me.health));
             }
             this.fx.renderStats(me, meOnField.items, 1160, 592, 'center');
             this.fx.renderItems(me.username, me, meOnField.items);
             this.fx.renderFrozen(me.username, me, meOnField.frozen);
         }
-        if (!holdTable) this.renderHorror(data.field.horror);
+        if (!holdTable) this.renderHorror(data.field.encounter);
         if (data.player && data.player.mana != null && data.player.mana != this.mana && !this.isYourTurn) {
             this.setMana(data.player.mana, data.player.crystals != null ? 1 + data.player.crystals : this.income);
         }
@@ -814,7 +814,7 @@ class MainGame extends Phaser.Scene {
                 if (truth.health < p.health) this.fx.popText(name, `-${p.health - Math.max(0, truth.health)}`);
                 else this.fx.popText(name, `+${truth.health - p.health}`, '#55ff77');
                 p.health = truth.health;
-                p.healthText.setText(`${Math.max(0, truth.health)}/100`);
+                p.healthText.setText(hpText(truth.health));
             }
             this.fx.renderStats(p, truth.items, p.defenseText.x, p.defenseText.y + 9, p.seat.side, truth.crystals);
             this.fx.renderItems(name, p, truth.items);

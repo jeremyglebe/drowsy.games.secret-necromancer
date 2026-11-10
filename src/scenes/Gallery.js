@@ -10,29 +10,21 @@ import Grandmaster from '../host/roles/Grandmaster.js';
 import Sorcerer from '../host/roles/Sorcerer.js';
 import Necromancer from '../host/roles/Necromancer.js';
 import Thrall from '../host/roles/Thrall.js';
-import Bolt from '../host/cards/spells/Bolt.js';
-import Fireball from '../host/cards/spells/Fireball.js';
-import Shield from '../host/cards/items/Shield.js';
-import Robe from '../host/cards/items/Robe.js';
-import Wand from '../host/cards/items/Wand.js';
-import HealingPotion from '../host/cards/spells/HealingPotion.js';
-import Freeze from '../host/cards/spells/Freeze.js';
-import ManaCrystal from '../host/cards/spells/ManaCrystal.js';
-import Loot from '../host/cards/spells/Loot.js';
-import EldritchHorror from '../host/cards/necromancy/EldritchHorror.js';
-import ForgetfulPotion from '../host/cards/necromancy/ForgetfulPotion.js';
-import RaiseDead from '../host/cards/necromancy/RaiseDead.js';
+import { CARDS, makeCard } from '../host/cards/cards.js';
 
 const SCALE = 1.45;
+
+/** Every card of a type from the card list, in the order they're written */
+const cardsOfType = (type) => Object.keys(CARDS).filter((n) => CARDS[n].type == type).map(makeCard);
 const STEP = 92;
 
 /** Every card in the game, laid out so you can read them before playing */
 const SECTIONS = [
     { title: "Characters", y: 170, x: 70, cards: () => [new Bacon(), new Lilium(), new Tiny(), new Mittens(), new Ember()] },
     { title: "Roles", y: 170, x: 700, cards: () => [new Grandmaster(), new Sorcerer(), new Necromancer(), new Thrall()] },
-    { title: "Spells", y: 380, x: 70, cards: () => [new Bolt(), new Fireball(), new HealingPotion(), new Freeze(), new ManaCrystal(), new Loot()] },
-    { title: "Equipment", y: 590, x: 70, cards: () => [new Shield(), new Robe(), new Wand()] },
-    { title: "Dark Arts (Necromancer only)", y: 590, x: 700, cards: () => [new ForgetfulPotion(), new RaiseDead(), new EldritchHorror()] },
+    { title: "Spells", y: 380, x: 70, cards: () => cardsOfType('spell') },
+    { title: "Equipment", y: 590, x: 70, cards: () => cardsOfType('item') },
+    { title: "Dark Arts (Necromancer only)", y: 590, x: 700, cards: () => cardsOfType('necromancy') },
 ];
 
 class Gallery extends Phaser.Scene {

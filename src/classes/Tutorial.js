@@ -42,16 +42,16 @@ export default class Tutorial {
                 highlight: () => [scene.manaText.getBounds(), scene.manaIcon.getBounds()],
             },
             {
-                text: "It's your turn! Drag a Bolt from your hand and drop it on a player you suspect. It costs 1 mana and deals 10-20 damage.\n\n(Not the Grandmaster!)",
+                text: "It's your turn! Drag a Bolt from your hand and drop it on a player you suspect. It costs 1 mana and rolls 2d6 damage.\n\n(Not the Grandmaster!)",
                 highlight: () => [new Phaser.Geom.Rectangle(270, 525, 840, 190)],
                 waitFor: (event, payload) => event == 'card played' && payload.card.name == 'Bolt',
             },
             {
-                text: "Zap! Most characters only get one Bolt per turn. Other cards are only limited by your mana.\n\nFireball (2 mana) hits EVERY other player for 10, the Grandmaster too. To cast it, drag it into the middle of the table.",
+                text: "Zap! Most characters only get one Bolt per turn. Other cards are only limited by your mana.\n\nFireball (2 mana) rolls 1d6 damage against EVERY other player, the Grandmaster too. To cast it, drag it into the middle of the table.",
                 highlight: () => [scene.playZone.getBounds()],
             },
             {
-                text: "Shields, Robes and Wands are equipment (1 mana each). Drag them onto your character card. Shields block damage, Robes let you dodge Bolts, Wands make your spells hit harder.\n\nTry the Shield, or click Next.",
+                text: "Shields, Robes and Wands are equipment (1 mana each). Drag them onto your character card. Shields block 1 damage per hit, Robes let you dodge Bolts on a 6, Wands add +2 to your damage rolls.\n\nTry the Shield, or click Next.",
                 highlight: () => [scene.mainPlayer.characterSprite.getBounds()],
                 waitFor: (event, payload) => event == 'card played' && payload.card.name == 'Shield',
                 allowNext: true,

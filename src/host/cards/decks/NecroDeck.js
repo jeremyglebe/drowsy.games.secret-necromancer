@@ -1,13 +1,7 @@
 import { shuffle } from '../../Tools.js';
-import ForgetfulPotion from '../necromancy/ForgetfulPotion.js';
-import RaiseDead from '../necromancy/RaiseDead.js';
-import EldritchHorror from '../necromancy/EldritchHorror.js';
+import { buildDeck } from '../cards.js';
 
-/** Generates a deck of necromancy cards. */
+/** A shuffled deck of the Necromancer's dark arts (counts are in cards.js) */
 export default function NecroDeck() {
-    const deck = [];
-    for (let i = 0; i < 110; i++) deck.push(new ForgetfulPotion());
-    for (let i = 0; i < 40; i++) deck.push(new RaiseDead());
-    for (let i = 0; i < 30; i++) deck.push(new EldritchHorror());
-    return shuffle(deck);
+    return shuffle(buildDeck(['necromancy']));
 }

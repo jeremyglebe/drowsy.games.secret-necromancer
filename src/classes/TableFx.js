@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import CardSprite from './CardSprite.js';
 import { textStyle } from './UI.js';
 
@@ -43,7 +44,7 @@ export default class TableFx {
     /** Center of a player's character card (or the hand for us) */
     playerPos(name) {
         const s = this.scene;
-        if (name == '##HORROR##') return { x: 640, y: 215 };
+        if (name == '##ENCOUNTER##') return { x: 640, y: 150 };
         if (name == s.mainPlayer?.username) {
             const b = s.mainPlayer.characterSprite.getBounds();
             return { x: b.centerX, y: b.centerY };
@@ -95,9 +96,9 @@ export default class TableFx {
         holder.statLine?.destroy();
         if (holder.defenseText) holder.defenseText.setText('');
         const parts = [];
-        if (count('Shield')) parts.push(['icon_shield', `${Math.min(60, count('Shield') * 15)}%`]);
-        if (count('Wand')) parts.push(['icon_sword', `+${count('Wand') * 5}`]);
-        if (count('Robe')) parts.push([null, `${Math.min(60, count('Robe') * 20)}% dodge`]);
+        if (count('Shield')) parts.push(['icon_shield', `-${Math.min(3, count('Shield'))}`]);
+        if (count('Wand')) parts.push(['icon_sword', `+${count('Wand') * 2}`]);
+        if (count('Robe')) parts.push([null, `dodge ${7 - Math.min(3, count('Robe'))}+`]);
         // Mana Crystals are public: everyone can see your income
         if (crystals) parts.push(['icon_crystal', `+${crystals}`]);
         if (!parts.length) return;
@@ -158,7 +159,10 @@ export default class TableFx {
             targets: pos,
             tweens: [
                 // Up into the middle of the table
-                { x: STAGE_X, y: STAGE_Y, scale: STAGE_SCALE, alpha: 1, duration: 380, ease: 'Back.easeOut', onUpdate: apply },
+                {
+                    x: STAGE_X, y: STAGE_Y, scale: STAGE_SCALE, alpha: 1, duration: 380, ease: 'Back.easeOut', onUpdate: apply,
+                    onComplete: () => this.showDice(play.rolls, STAGE_X + 130, STAGE_Y),
+                },
                 // Let everyone read it
                 { scale: STAGE_SCALE * 1.04, duration: this.hold / 2, yoyo: true, ease: 'Sine.easeInOut', onUpdate: apply },
                 // Off to the target
@@ -193,6 +197,84 @@ export default class TableFx {
             return { ...this.playerPos(play.target), scale: 0.5, alpha: 0.2 };
         }
         return { x: STAGE_X, y: STAGE_Y, scale: 0.5, alpha: 0 };
+    }
+
+    /* ---------------------------------------------------------------- */
+    /* Dice                                                              */
+    /* ---------------------------------------------------------------- */
+
+    /**
+     * Tumbles the dice from a play and then shows what came up.
+     * @param {object[]} rolls the rolls from a 'spell played' message
+     */
+    showDice(rolls = [], x, y) {
+        const s = this.scene;
+        const shown = rolls.filter((r) => r.dice.length);
+        if (!shown.length) return;
+        const SIZE = 34, GAP = 8, ROW = 56;
+        const top = y - ((shown.length - 1) * ROW) / 2;
+        const all = [];
+        shown.forEach((r, row) => {
+            const ry = top + row * ROW;
+            const faces = r.dice.map((value, i) => {
+                const die = this.drawDie(x + i * (SIZE + GAP), ry, SIZE, 1 + Math.floor(Math.random() * 6));
+                die.setDepth(67).setAngle(Phaser.Math.Between(-40, 40));
+                all.push(die);
+                return { die, value };
+            });
+            const bonus = r.bonus ? (r.bonus > 0 ? ` +${r.bonus}` : ` ${r.bonus}`) : '';
+            let text = r.label == 'dodge'
+                ? `dodge on ${r.need}+`
+                : `${bonus} = ${r.total}`;
+            const label = s.add.text(x + r.dice.length * (SIZE + GAP) - GAP / 2 + 6, ry, '', textStyle(22, r.label == 'heal' ? '#55ff77' : '#ffe680'))
+                .setOrigin(0, 0.5).setDepth(67);
+            all.push(label);
+            // Tumble for a bit, then land on the real numbers
+            let ticks = 0;
+            s.time.addEvent({
+                delay: 70,
+                repeat: 6,
+                callback: () => {
+                    ticks++;
+                    const last = ticks > 6;
+                    for (const f of faces) {
+                        this.setDieFace(f.die, last ? f.value : 1 + Math.floor(Math.random() * 6), SIZE);
+                        f.die.setAngle(last ? 0 : Phaser.Math.Between(-40, 40));
+                    }
+                    if (last) {
+                        if (r.label == 'dodge') text = `${r.total >= r.need ? 'dodged!' : 'no dodge'} (${r.need}+)`;
+                        label.setText(text);
+                    }
+                },
+            });
+        });
+        s.time.delayedCall(this.hold + 900, () => {
+            s.tweens.add({ targets: all, alpha: 0, duration: 250, onComplete: () => all.forEach((o) => o.destroy()) });
+        });
+    }
+
+    /** A white die with pips, drawn in code (we never drew dice) */
+    drawDie(x, y, size, value) {
+        const g = this.scene.add.graphics({ x, y });
+        this.setDieFace(g, value, size);
+        return g;
+    }
+
+    setDieFace(g, value, size) {
+        const h = size / 2, r = size * 0.09, o = size * 0.27;
+        g.clear();
+        g.fillStyle(0xfdf6e3, 1).fillRoundedRect(-h, -h, size, size, size * 0.18);
+        g.lineStyle(2, 0x1a0026, 1).strokeRoundedRect(-h, -h, size, size, size * 0.18);
+        g.fillStyle(0x1a0026, 1);
+        const pips = {
+            1: [[0, 0]],
+            2: [[-o, -o], [o, o]],
+            3: [[-o, -o], [0, 0], [o, o]],
+            4: [[-o, -o], [o, -o], [-o, o], [o, o]],
+            5: [[-o, -o], [o, -o], [0, 0], [-o, o], [o, o]],
+            6: [[-o, -o], [o, -o], [-o, 0], [o, 0], [-o, o], [o, o]],
+        }[value];
+        for (const [px, py] of pips) g.fillCircle(px, py, r);
     }
 
     done() {

@@ -27,7 +27,7 @@ import { BASE_INCOME } from '../host/Player.js';
 import { costFor } from '../host/cards/costs.js';
 
 const NECRO_PHASE = '##NECRO##';
-const HORROR = '##HORROR##';
+const HORROR = '##ENCOUNTER##';
 
 /** Mana costs, for working out what other people have spent */
 const COSTS = {
@@ -115,18 +115,18 @@ export default class Bot {
         s.on('your mana', ({ mana }) => { this.mana = mana; });
         s.on('sync', ({ field, player }) => {
             this.players = field.players;
-            this.horror = field.horror;
+            this.horror = field.encounter;
             this.hand = player.hand.slice();
             this.mana = player.mana;
         });
         s.on('spell played', (info) => {
             this.observe(info);
             this.players = info.field.players;
-            this.horror = info.field.horror;
+            this.horror = info.field.encounter;
         });
-        s.on('horror attacks', ({ field }) => {
+        s.on('encounter acts', ({ field }) => {
             this.players = field.players;
-            this.horror = field.horror;
+            this.horror = field.encounter;
         });
         s.on('the gmaster bro reveals himself', (name) => { this.grandmaster = name; });
         s.on('death', (name) => {
@@ -175,10 +175,9 @@ export default class Bot {
         return this.players[name]?.health ?? 0;
     }
 
-    /** Fraction of damage a player's shields block */
-    defense(name) {
-        const shields = (this.players[name]?.items ?? []).filter((i) => i.name == 'Shield').length;
-        return Math.min(0.6, shields * 0.15);
+    /** How much damage a player's shields block from each hit */
+    armor(name) {
+        return this.players[name]?.armor ?? 0;
     }
 
     /** Living players other than me */
@@ -220,7 +219,7 @@ export default class Bot {
         }
         if (cardname == 'Fireball') {
             // Fine while the GM is healthy, reckless once they're low
-            return [[caster, this.hp(this.grandmaster) <= 30 ? 2 : 0.6]];
+            return [[caster, this.hp(this.grandmaster) <= 12 ? 2 : 0.6]];
         }
         if (cardname == 'Freeze' || cardname == 'Loot') {
             // Same idea as a Bolt, just milder
@@ -354,11 +353,11 @@ export default class Bot {
     async equipItems() {
         const items = this.players[this.name]?.items ?? [];
         const have = (name) => items.filter((i) => i.name == name).length;
-        // Shields cap at 60% (4), Robes at 60% (3); Wands keep stacking
-        const worthIt = { Shield: have('Shield') < 4, Robe: have('Robe') < 3, Wand: true };
+        // Shields and Robes stop counting after 3; Wands keep stacking
+        const worthIt = { Shield: have('Shield') < 3, Robe: have('Robe') < 3, Wand: true };
         for (const item of ['Wand', 'Shield', 'Robe']) {
             if (this.over) return;
-            if (this.find(item) >= 0 && worthIt[item] && (this.hp(this.name) < 80 || item == 'Wand' || chance(0.5))) {
+            if (this.find(item) >= 0 && worthIt[item] && (this.hp(this.name) < 32 || item == 'Wand' || chance(0.5))) {
                 await this.play(item, this.name);
             }
         }
@@ -371,9 +370,9 @@ export default class Bot {
         // Heal ourselves when hurt, or (good guys) a hurt Grandmaster.
         // A Thrall props up their master.
         if (this.find('Healing Potion') >= 0) {
-            if (myHp <= 60) await this.play('Healing Potion', this.name);
-            else if (!evil && this.alive.has(gm) && this.hp(gm) <= 60) await this.play('Healing Potion', gm);
-            else if (this.role == 'Thrall' && this.alive.has(this.master) && this.hp(this.master) <= 60) await this.play('Healing Potion', this.master);
+            if (myHp <= 24) await this.play('Healing Potion', this.name);
+            else if (!evil && this.alive.has(gm) && this.hp(gm) <= 24) await this.play('Healing Potion', gm);
+            else if (this.role == 'Thrall' && this.alive.has(this.master) && this.hp(this.master) <= 24) await this.play('Healing Potion', this.master);
         }
     }
 
@@ -407,7 +406,7 @@ export default class Bot {
         for (let b = 0; b < this.boltsPerTurn && target; b++) await this.play('Bolt', target);
         // Fireballs are fine as long as they won't finish off our master
         const masterHp = this.hp(this.master);
-        if (masterHp > 15 && chance(0.7)) await this.play('Fireball');
+        if (masterHp > 6 && chance(0.7)) await this.play('Fireball');
     }
 
     async goodTurn() {
@@ -435,9 +434,9 @@ export default class Bot {
 
         // Fireball hurts the Grandmaster too, so think about it
         if (this.find('Fireball') >= 0) {
-            const finishing = certainty >= paranoia && this.hp(suspect) <= 10 * (1 - this.defense(suspect));
-            const safeForGM = isGM || gmHp > 40;
-            if (safeForGM && (finishing || (isGM && chance(aggression * 0.6)) || (gmHp > 60 && chance(aggression * 0.15)))) {
+            const finishing = certainty >= paranoia && this.hp(suspect) <= 3 - this.armor(suspect);
+            const safeForGM = isGM || gmHp > 16;
+            if (safeForGM && (finishing || (isGM && chance(aggression * 0.6)) || (gmHp > 24 && chance(aggression * 0.15)))) {
                 await this.play('Fireball');
             }
         }
@@ -447,7 +446,7 @@ export default class Bot {
         const gm = this.grandmaster;
         const gmAlive = this.alive.has(gm);
         const gmHp = this.hp(gm);
-        const gmTakes = (dmg) => dmg - Math.ceil(dmg * this.defense(gm));
+        const gmTakes = (dmg) => Math.max(0, dmg - this.armor(gm));
         const caught = this.heat >= 3;
 
         // Pick this round's ritual. A corpse on the table? Raise it to fight
@@ -457,7 +456,7 @@ export default class Bot {
         let ritual = null;
         if (corpse && this.find('Raise Dead') >= 0) ritual = 'Raise Dead';
         // Hurts us too, but nobody can tell who summoned it
-        else if (this.find('Eldritch Horror') >= 0 && !this.horror && gmAlive && myHp > 30
+        else if (this.find('Eldritch Horror') >= 0 && !this.horror && gmAlive && myHp > 12
             && this.canPlay('Eldritch Horror') && chance(0.5)) ritual = 'Eldritch Horror';
         else if (this.find('Witch Brew') >= 0) ritual = 'Witch Brew';
 
@@ -475,13 +474,13 @@ export default class Bot {
     }
 
     async brew(gm, gmAlive, gmHp, gmTakes) {
-        // Witch Brew is anonymous, so nobody can pin it on us. Aim it at the
-        // GM when it would finish them (or now and then), otherwise at whoever
-        // has been coming after us.
+        // Witch Brew is anonymous, so nobody can pin it on us. It drains mana
+        // and cards: mostly aimed at whoever has been coming after us, now
+        // and then at the GM to stop them healing up.
         const threat = this.others().filter((n) => n != gm && !this.thralls.has(n))
             .sort((a, b) => (this.hurtMe[b] || 0) - (this.hurtMe[a] || 0))[0];
         const victim = !gmAlive ? threat
-            : (gmHp <= gmTakes(30) || !threat || chance(0.6)) ? gm : threat;
+            : (!threat || chance(0.4)) ? gm : threat;
         if (victim) await this.play('Witch Brew', victim);
     }
 
@@ -489,7 +488,7 @@ export default class Bot {
 
         // Can we finish the Grandmaster right now? Then stop pretending.
         const fireballs = this.count('Fireball');
-        const minDamage = (this.find('Bolt') >= 0 ? gmTakes(10) : 0) + fireballs * gmTakes(10);
+        const minDamage = (this.find('Bolt') >= 0 ? gmTakes(2) : 0) + fireballs * gmTakes(1);
         if (minDamage >= gmHp || caught) {
             this.reserve = 0;
             while (this.alive.has(gm) && await this.play('Fireball')) { /* keep burning */ }
@@ -500,7 +499,7 @@ export default class Bot {
         // A Fireball while the GM is healthy reads as "just clearing the
         // table", so it's the safest way to chip at them. Throw a second one
         // only if nobody's looking at us yet.
-        if (gmHp > 30 && await this.play('Fireball')) {
+        if (gmHp > 12 && await this.play('Fireball')) {
             if (this.heat < 0.5 && chance(0.2)) await this.play('Fireball');
         }
 
@@ -510,7 +509,7 @@ export default class Bot {
         // self-defense.
         // Taking a swing at our own monster looks great, as long as it's
         // healthy enough to survive it
-        if (this.horror && this.horror.health > 25 && this.heat >= 0.8) {
+        if (this.horror && this.horror.health > 10 && this.heat >= 0.8) {
             await this.play('Bolt', HORROR);
             return;
         }
