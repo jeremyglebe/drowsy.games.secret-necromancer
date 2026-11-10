@@ -75,8 +75,14 @@ export const LINES = {
     lost: ["gg", "gg. Next time.", "I knew it was them..."],
 };
 
-export function pick(key, vars = {}) {
-    const options = LINES[key];
+/**
+ * Picks a line for a situation. Pass the last line this bot used for it
+ * (memory[key]) and it won't say the same thing twice in a row.
+ */
+export function pick(key, vars = {}, memory = {}) {
+    const all = LINES[key];
+    const options = all.length > 1 ? all.filter((l) => l != memory[key]) : all;
     const line = options[Math.floor(Math.random() * options.length)];
+    memory[key] = line;
     return line.replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m);
 }

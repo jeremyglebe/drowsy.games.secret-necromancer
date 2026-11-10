@@ -70,7 +70,8 @@ class MainGame extends Phaser.Scene {
         // A faint marker for the "play area" where untargeted cards are dropped
         this.playZone = this.add.rectangle(640, 300, 820, 300, 0x000000, 0.12)
             .setStrokeStyle(2, 0xffffff, 0.15);
-        this.playZoneText = this.add.text(640, 430, "drop Fireball / Shield here", textStyle(16, '#ffffffaa')).setOrigin(0.5);
+        // Lights up while you drag a card that gets dropped on the table
+        this.playZoneText = this.add.text(640, 430, "drop it on the table", textStyle(18, '#ffe680')).setOrigin(0.5).setVisible(false);
 
         this.turnText = this.add.text(640, 60, "", textStyle(24, '#ffe680')).setOrigin(0.5);
 
@@ -508,10 +509,25 @@ class MainGame extends Phaser.Scene {
         const sprite = new CardSprite(640, HAND_Y, shown, 10, this, 2);
         if (this.costOf(card) > this.mana) sprite.setAlpha(0.55);
         sprite.specEmitter.on("cardDragEnd", this.checkOverlapTarget, this);
+        sprite.specEmitter.on('dragstart', this.showDropZone, this);
+        sprite.specEmitter.on('cardDragEnd', this.hideDropZone, this);
         sprite.specEmitter.on('hover', this.showTooltip, this);
         sprite.specEmitter.on('unhover', this.hideTooltip, this);
         this.hand.push(sprite);
         this.placeHand();
+    }
+
+    /** Cards that get dropped on the table (not on a player) light it up */
+    showDropZone(sprite) {
+        const t = sprite.card.targetType;
+        if (!['others', 'all', 'self', 'any'].includes(t)) return;
+        this.playZoneText.setText(t == 'self' || t == 'any' ? "drop it on the table (or yourself)" : "drop it on the table").setVisible(true);
+        this.playZone.setStrokeStyle(3, 0xffe680, 0.7);
+    }
+
+    hideDropZone() {
+        this.playZoneText.setVisible(false);
+        this.playZone.setStrokeStyle(2, 0xffffff, 0.15);
     }
 
     /** Sends a play to the host and removes the card locally */

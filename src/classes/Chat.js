@@ -24,6 +24,9 @@ export default class Chat {
         this.colorFor = colorFor || (() => '#ffffff');
         /** Text objects, oldest first */
         this.lines = [];
+        /** One backdrop behind all the lines */
+        this.panel = scene.add.rectangle(x - 6, bottom + 4, width + 12, 0, 0x1a0026, 0.6)
+            .setOrigin(0, 1).setDepth(29).setStrokeStyle(1, 0xb36bff, 0.4).setVisible(false);
 
         this.hint = scene.add.text(x, bottom + 14, "press Enter to chat", textStyle(13, '#ffffff77'))
             .setOrigin(0, 0).setDepth(30).setInteractive({ useHandCursor: true });
@@ -87,9 +90,8 @@ export default class Chat {
         const color = dead ? '#9a8aa8' : this.colorFor(from);
         const line = s.add.text(this.x, 0, `${dead ? '(dead) ' : ''}${from}: ${text}`, {
             ...textStyle(FONT, color),
+            align: 'left',
             wordWrap: { width: this.width },
-            backgroundColor: '#1a002699',
-            padding: { x: 4, y: 1 },
         }).setOrigin(0, 1).setDepth(30);
         this.lines.push(line);
         while (this.lines.length > LINES) this.lines.shift().destroy();
@@ -99,8 +101,12 @@ export default class Chat {
             this.lines[i].setY(y);
             y -= this.lines[i].height + 2;
         }
+        this.panel.setVisible(true).setAlpha(1).setSize(this.width + 12, this.bottom - y + 6);
+        this.lastAt = s.time.now;
         s.time.delayedCall(FADE_AFTER, () => {
             if (line.active) s.tweens.add({ targets: line, alpha: 0.35, duration: 800 });
+            // Once everything is old, the backdrop fades too
+            if (s.time.now - this.lastAt >= FADE_AFTER - 50) s.tweens.add({ targets: this.panel, alpha: 0.35, duration: 800 });
         });
     }
 }

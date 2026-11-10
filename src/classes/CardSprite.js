@@ -143,6 +143,7 @@ class CardSprite {
 
     dragStart() {
         CardSprite.dragging = true;
+        this.specEmitter.emit('dragstart', this);
         this.setDepthRaw(80);
     }
 

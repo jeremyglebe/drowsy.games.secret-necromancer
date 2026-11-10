@@ -323,7 +323,7 @@ export default class Bot {
         const now = Date.now();
         if (now - this.lastSaid < this.delay * 2.5) return;
         this.lastSaid = now;
-        const text = pick(key, { gm: this.grandmaster, ...vars });
+        const text = pick(key, { gm: this.grandmaster, ...vars }, this.saidLast ??= {});
         // A little typing time
         setTimeout(() => this.socket.emit('chat', text), this.delay * rand(0.3, 0.9));
     }
