@@ -11,12 +11,15 @@
  * 'accept connection': 'vip' or 'player' (to the joining client)
  * 'reject connection': rejection message (to the joining client)
  * 'update players': { usernames: string[], vip: string } (to all, in lobby)
+ * 'table settings': { cardHold } display settings from the host (to all)
  * 'start game': client-safe field (to all)
  * 'your player': the client's full Player object (to each client)
  * 'the gmaster bro reveals himself': username of the Grandmaster (to all)
  * 'sync': { field, player } (to each client, periodically)
  * 'death': username (to all)
  * 'game over': { winners: string[], roles: {username: roleName} } (to all)
+ * 'risen': username raised from the dead as a Thrall (to all)
+ * 'you rose': { role, necromancer } (to the raised player only)
  *
  *  Host Listens For |
  * ------------------|
@@ -36,6 +39,8 @@ export default class HostServer {
      */
     constructor(options = {}) {
         this.options = options;
+        /** Display settings the host picked, sent to everyone at the start */
+        this.tableSettings = {};
         /** Map of socket id -> { id, username, endpoint } */
         this.sockets = {};
         this.nextId = 1;
@@ -164,6 +169,7 @@ export default class HostServer {
         this.field = new Field(this.usernames, this, this.options);
         const field = this.field;
 
+        this.emit('table settings', this.tableSettings);
         this.emit('start game', field.getCliField());
         for (const s of Object.values(this.sockets)) {
             s.endpoint.emit('your player', field.players[s.username]);
@@ -205,11 +211,13 @@ export default class HostServer {
 
         const necromancer = field.findRole('Necromancer');
         const grandmaster = field.findRole('Grandmaster');
+        const evil = Object.keys(field.players).filter((n) =>
+            ['Necromancer', 'Thrall'].includes(field.players[n].role.name));
         let winners = null;
         if (field.players[necromancer].health <= 0) {
-            winners = Object.keys(field.players).filter((n) => n != necromancer);
+            winners = Object.keys(field.players).filter((n) => !evil.includes(n));
         } else if (grandmaster && field.players[grandmaster].health <= 0) {
-            winners = [necromancer];
+            winners = evil;
         }
 
         this.sync();
@@ -229,6 +237,17 @@ export default class HostServer {
         for (const name of this.deadPeople) {
             field.removeFromQueue(name);
         }
+    }
+
+    /** Called by the Field when Rise From the Dead brings someone back */
+    onRaised(username) {
+        this.deadPeople = this.deadPeople.filter((n) => n != username);
+        this.emit('risen', username);
+        // The thrall learns their new role, and who they now serve
+        this.emitToUser(username, 'you rose', {
+            role: this.field.players[username].role,
+            necromancer: this.field.findRole('Necromancer'),
+        });
     }
 
     /** Shuts down the host (stops timers and the PeerJS listener). */

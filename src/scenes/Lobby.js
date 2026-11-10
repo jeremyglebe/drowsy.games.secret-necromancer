@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import client from '../net/SocketClient.js';
 import { makeButton, textStyle } from '../classes/UI.js';
+import { settings } from '../net/Settings.js';
 
 const MIN_PLAYERS = 4;
 
@@ -45,6 +46,15 @@ class Lobby extends Phaser.Scene {
             this.botButton = makeButton(this, 470, 600, 260, 70, "Add Bot", () => client.addBot(), 0xb36bff);
             this.startButton = makeButton(this, 810, 600, 340, 70, "Start The Game", () => client.emit("start"));
             this.startButton.setEnabled(false);
+
+            // Table settings: how fast bots play, how long cards linger
+            const label = (key) => key == 'botSpeed' ? `Bot speed: ${settings.botSpeed}` : `Card pause: ${settings.cardPause}`;
+            for (const [key, x] of [['botSpeed', 470], ['cardPause', 810]]) {
+                const button = makeButton(this, x, 525, 300, 44, label(key), () => {
+                    client.cycleSetting(key);
+                    button.text.setText(label(key));
+                }, 0x8899aa);
+            }
         }
         this.hint = this.add.text(640, 670, "", textStyle(20, '#ffffff')).setOrigin(0.5);
 

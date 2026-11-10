@@ -6,9 +6,12 @@ export default class Fireball extends Spell {
     }
 
     activate(field, caster, targets) {
+        const source = field.players[caster];
+        source?.calcStats();
+        const damage = 10 + (source?.focus ?? 0);
         for (const [name, player] of Object.entries(field.players)) {
             if (name != caster && player.health > 0) {
-                player.takeDamage(10);
+                player.takeDamage(damage);
             }
         }
     }

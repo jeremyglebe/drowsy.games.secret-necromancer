@@ -2,6 +2,7 @@ import { createLocalPair } from './Endpoint.js';
 import { hostRoom, joinRoom } from './Peer.js';
 import HostServer from '../host/HostServer.js';
 import Bot from '../bots/Bot.js';
+import { settings, cycle } from './Settings.js';
 
 const BOT_NAMES = ['Merlina', 'Hexley', 'Grimsby', 'Morwen', 'Thistle', 'Quillon', 'Ashgrave', 'Bramble'];
 
@@ -28,6 +29,7 @@ class SocketClient {
      */
     static async host(username) {
         const server = new HostServer();
+        server.tableSettings = { cardHold: settings.cardHold };
         const { code, peer } = await hostRoom((endpoint, meta) => {
             server.addSocket(endpoint, meta.username);
         });
@@ -58,6 +60,7 @@ class SocketClient {
             turnOrder: [username, ...bots],
             startingHands: { [username]: ['Bolt', 'Fireball', 'Shield', 'Bolt', 'Bolt'] },
         });
+        server.tableSettings = { cardHold: settings.cardHold };
         const [serverSide, clientSide] = createLocalPair(false, true);
         this.server = server;
         this.socket = clientSide;
@@ -66,7 +69,7 @@ class SocketClient {
         for (const name of bots) {
             const [botServerSide, botClientSide] = createLocalPair(false, true);
             server.addSocket(botServerSide, name);
-            new Bot(botClientSide, { delay: 1300, maxPlays: 2 });
+            this.bots.set(name, { endpoint: botClientSide, bot: new Bot(botClientSide, { delay: settings.botDelay }) });
         }
     }
 
@@ -81,18 +84,30 @@ class SocketClient {
         const name = BOT_NAMES.find((n) => !taken.includes(n));
         const [serverSide, clientSide] = createLocalPair(false, true);
         this.server.addSocket(serverSide, name, { bot: true });
-        new Bot(clientSide, { delay: 1300 });
-        this.bots.set(name, clientSide);
+        this.bots.set(name, { endpoint: clientSide, bot: new Bot(clientSide, { delay: settings.botDelay }) });
         return name;
     }
 
     /** Removes a bot from the lobby (host only) */
     static removeBot(name) {
-        const endpoint = this.bots.get(name);
-        if (endpoint) {
-            endpoint.close();
+        const entry = this.bots.get(name);
+        if (entry) {
+            entry.endpoint.close();
             this.bots.delete(name);
         }
+    }
+
+    /**
+     * Host only: changes a table setting ('botSpeed' or 'cardPause'). Bots
+     * pick up the new speed right away; the card pause goes out to everyone
+     * when the game starts.
+     * @returns {string} the new value
+     */
+    static cycleSetting(key) {
+        const value = cycle(key);
+        for (const { bot } of this.bots.values()) bot.delay = settings.botDelay;
+        if (this.server) this.server.tableSettings = { cardHold: settings.cardHold };
+        return value;
     }
 
     /**

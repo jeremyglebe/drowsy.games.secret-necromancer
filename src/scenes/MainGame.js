@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import client from '../net/SocketClient.js';
 import CardSprite from '../classes/CardSprite.js';
 import Tutorial from '../classes/Tutorial.js';
+import TableFx from '../classes/TableFx.js';
 import { makeButton, textStyle } from '../classes/UI.js';
 
 const NECRO_PHASE = '##NECRO##';
@@ -47,6 +48,7 @@ class MainGame extends Phaser.Scene {
 
     create() {
         this.add.sprite(0, 0, "gamebackground_graphic").setOrigin(0, 0);
+        this.fx = new TableFx(this);
 
         // A faint marker for the "play area" where untargeted cards are dropped
         this.playZone = this.add.rectangle(640, 300, 820, 300, 0x000000, 0.12)
@@ -56,10 +58,10 @@ class MainGame extends Phaser.Scene {
         this.turnText = this.add.text(640, 60, "", textStyle(24, '#ffe680')).setOrigin(0.5);
 
         // Big announcement text
-        this.quickText = this.add.text(640, 220, "", textStyle(46)).setOrigin(0.5).setScale(0).setDepth(75);
+        this.quickText = this.add.text(640, 170, "", textStyle(32)).setOrigin(0.5).setScale(0).setDepth(75);
         this.quickTextTween = this.tweens.add({
             targets: this.quickText,
-            y: 180,
+            y: 140,
             scaleX: 1,
             scaleY: 1,
             duration: 400,
@@ -87,12 +89,17 @@ class MainGame extends Phaser.Scene {
             if (this.tutorialMode) this.tutorial = new Tutorial(this);
         });
         client.on('your new card', (card) => this.addCard(card));
+        client.on('table settings', ({ cardHold }) => { if (cardHold) this.fx.hold = cardHold; });
         client.on('turn start', (username) => this.turnChange(username));
         client.on('spell played', this.onSpellPlayed.bind(this));
         client.on('sync', this.checkSync.bind(this));
         client.on('game over', this.gameOver.bind(this));
-        client.on('death', this.userDie.bind(this));
+        client.on('death', (name) => this.fx.whenIdle(() => this.userDie(name)));
         client.on('the gmaster bro reveals himself', this.displayGrandmaster.bind(this));
+        // 'risen' arrives just before the card that caused it, so give that
+        // card a moment to start flying before showing the result
+        client.on('risen', (name) => this.time.delayedCall(100, () => this.fx.whenIdle(() => this.onRisen(name))));
+        client.on('you rose', (info) => this.time.delayedCall(100, () => this.fx.whenIdle(() => this.onYouRose(info))));
         client.on('disconnect', () => {
             if (!this.gameIsOver && this.scene.isActive()) {
                 this.quickTextDisplay("Lost connection to the host!");
@@ -112,20 +119,57 @@ class MainGame extends Phaser.Scene {
         this.add.text(640, 22, label, textStyle(30)).setOrigin(0.5);
         const gm = this.otherPlayers[username];
         if (gm && gm.usernameText) gm.usernameText.setColor('#ff88ff').setText(username + " (GM)");
+        if (gm && gm.roleIcon) gm.roleIcon.setTexture("Grandmaster_graphic");
     }
 
     onSpellPlayed(obj) {
         let message = null;
-        if (obj.caster == NECRO_PHASE) {
+        if (obj.caster == NECRO_PHASE && obj.cardname == 'Rise From the Dead') {
+            message = obj.target == this.mainPlayer.username ? "You rise from the dead!" : `${obj.target} rises from the dead\nto serve the Necromancer!`;
+        } else if (obj.caster == NECRO_PHASE) {
             message = `Dark magic! ${obj.cardname}\nstrikes ${obj.target == this.mainPlayer.username ? 'you' : obj.target}!`;
         } else if (obj.caster != this.mainPlayer.username) {
-            if (obj.cardname == 'Shield') message = `${obj.caster} equipped a Shield`;
-            else if (obj.target) message = `${obj.caster} cast ${obj.cardname}\non ${obj.target == this.mainPlayer.username ? 'you' : obj.target}`;
+            const who = (name) => name == this.mainPlayer.username ? 'you' : name;
+            if (['Shield', 'Robe', 'Wand'].includes(obj.cardname)) message = `${obj.caster} equipped a ${obj.cardname}`;
+            else if (obj.target) message = `${obj.caster} cast ${obj.cardname}\non ${who(obj.target)}` + (obj.dodged ? '... dodged!' : '');
             else message = `${obj.caster} cast ${obj.cardname}!`;
+        } else if (obj.dodged) {
+            message = `${obj.target} dodged your Bolt!`;
         }
         if (message) this.quickTextDisplay(message);
-        this.checkSync({ player: null, field: obj.field });
+
+        // Cards come from whoever cast them (the Necromancy phase's dark card
+        // sits in the middle of the table)
+        const from = obj.caster == NECRO_PHASE ? { x: 640, y: 380 } : this.fx.playerPos(obj.caster);
+        this.fx.playCard(obj, from, (play) => {
+            this.landEffects(play);
+            this.checkSync({ player: null, field: play.field }, true);
+        });
         this.notify('spell played', obj);
+    }
+
+    /** What happens when a played card reaches its target */
+    landEffects(play) {
+        const fx = this.fx;
+        switch (play.cardname) {
+            case 'Bolt':
+                if (play.dodged) fx.popText(play.target, 'dodged!', '#a8d8ff');
+                else fx.flash(play.target);
+                break;
+            case 'Fireball':
+                fx.shake();
+                for (const name of [this.mainPlayer.username, ...Object.keys(this.otherPlayers)]) {
+                    const alive = name == this.mainPlayer.username ? !this.dead : this.otherPlayers[name].health > 0;
+                    if (name != play.caster && alive) fx.flash(name, 0xff8833);
+                }
+                break;
+            case 'Witch Brew':
+                fx.flash(play.target, 0x9b30ff);
+                break;
+            case 'Rise From the Dead':
+                fx.flash(play.target, 0xb38fd9);
+                break;
+        }
     }
 
     placePlayerSprites() {
@@ -150,6 +194,7 @@ class MainGame extends Phaser.Scene {
         Object.keys(this.otherPlayers).forEach((name, i) => {
             const p = this.otherPlayers[name];
             const [x, y, side] = SEATS[i];
+            p.seat = { x, y, side };
             const tx = side == 'left' ? x + 55 : x - 55;
             const ox = side == 'left' ? 0 : 1;
             p.charSprite = new CardSprite(x, y, p.character, 0, this, 1.5);
@@ -161,6 +206,8 @@ class MainGame extends Phaser.Scene {
             p.defenseText = this.add.text(tx, y - 6, "", textStyle(16, '#a8d8ff')).setOrigin(ox, 0);
             p.cardCountIcon = this.add.sprite(side == 'left' ? tx + 15 : tx - 15, y + 40, "backofspell_graphic").setScale(0.6);
             p.cardCountText = this.add.text(side == 'left' ? tx + 35 : tx - 35, y + 30, String(p.hand), style).setOrigin(ox, 0);
+            // Their role, face down (the Grandmaster's gets flipped when revealed)
+            p.roleIcon = this.add.sprite(side == 'left' ? tx + 85 : tx - 85, y + 40, "roleback_graphic").setScale(0.6);
             p.highlight = this.add.rectangle(x, y, 90, 138).setStrokeStyle(4, 0xffe680).setVisible(false);
         });
     }
@@ -195,8 +242,12 @@ class MainGame extends Phaser.Scene {
     }
 
     setDefenseText(textObj, items) {
-        const def = Math.min(60, (items || []).length * 15);
-        textObj.setText(def ? `Shield: -${def}% dmg` : "");
+        const count = (name) => (items || []).filter((i) => i.name == name).length;
+        const parts = [];
+        if (count('Shield')) parts.push(`-${Math.min(60, count('Shield') * 15)}% dmg`);
+        if (count('Robe')) parts.push(`${Math.min(60, count('Robe') * 20)}% dodge`);
+        if (count('Wand')) parts.push(`+${count('Wand') * 5} dmg`);
+        textObj.setText(parts.join('  '));
     }
 
     removeCard(index = 0) {
@@ -229,9 +280,11 @@ class MainGame extends Phaser.Scene {
     }
 
     /** Which living opponent (if any) a card was dropped on */
-    opponentUnder(bounds) {
+    opponentUnder(bounds, dead = false) {
         for (const [name, p] of Object.entries(this.otherPlayers)) {
-            if (p.health > 0 && Phaser.Geom.Rectangle.Overlaps(bounds, p.charSprite.getBounds())) {
+            // Only living players, or only dead ones (for Rise From the Dead)
+            if ((p.health > 0) == dead) continue;
+            if (Phaser.Geom.Rectangle.Overlaps(bounds, p.charSprite.getBounds())) {
                 return name;
             }
         }
@@ -253,9 +306,27 @@ class MainGame extends Phaser.Scene {
             return done();
         }
 
+        if (card.targetType == 'dead') {
+            const target = this.opponentUnder(bounds, true);
+            if (!target) {
+                if (sprite.y < PLAY_LINE_Y) this.quickTextDisplay("Drop it on a dead player");
+                return done();
+            }
+            if (this.necroCardPlayed) {
+                this.quickTextDisplay("Only one dark ritual per turn");
+                return done();
+            }
+            this.necroCardPlayed = true;
+            return this.playCard(sprite, target);
+        }
+
         if (card.targetType == 'player') {
             const target = this.opponentUnder(bounds);
             if (!target) return done();
+            if (target == this.master) {
+                this.quickTextDisplay("You can't Bolt your master!");
+                return done();
+            }
             if (card.type == 'necromancy') {
                 if (this.necroCardPlayed) {
                     this.quickTextDisplay("Only one dark ritual per turn");
@@ -295,6 +366,7 @@ class MainGame extends Phaser.Scene {
             this.isYourTurn = false;
             this.turnText.setText("Necromancy phase...");
             this.quickTextDisplay("The dead stir...");
+            this.showDarkRitual();
         } else if (username == this.mainPlayer.username) {
             this.isYourTurn = true;
             this.turnText.setText("Your turn! Drag cards to play them.");
@@ -307,6 +379,56 @@ class MainGame extends Phaser.Scene {
             this.turnEndButton.setVisible(false);
         }
         this.notify('turn start', username);
+    }
+
+    /** A face-down dark card drifts onto the table during the Necromancy phase */
+    showDarkRitual() {
+        const card = this.add.sprite(640, 380, "darkback_graphic").setScale(0).setDepth(40).setAlpha(0);
+        this.tweens.add({
+            targets: card,
+            scale: 2.2,
+            alpha: 1,
+            angle: 360,
+            duration: 700,
+            ease: 'Back.easeOut',
+            onComplete: () => this.tweens.add({
+                targets: card, alpha: 0, delay: 1800, duration: 500,
+                onComplete: () => card.destroy(),
+            }),
+        });
+    }
+
+    /** Someone came back as a Thrall */
+    onRisen(username) {
+        const p = this.otherPlayers[username];
+        if (!p) return;
+        p.health = 50;
+        p.healthText.setText("50/100").setColor('#ffffff');
+        p.tint = 0xb38fd9;
+        p.charSprite.graphic.setTint(p.tint);
+        p.roleIcon?.setTexture("Thrall_graphic");
+        this.fx.popText(username, '+50', '#c9a0ff');
+        p.usernameText.setColor('#c9a0ff').setText(username + " (thrall)");
+    }
+
+    /** We came back as a Thrall */
+    onYouRose({ role, necromancer }) {
+        const me = this.mainPlayer;
+        /** The Necromancer we now serve */
+        this.master = necromancer;
+        this.dead = false;
+        me.health = 50;
+        me.role = role;
+        me.healthText.setText("50/100").setColor('#c9a0ff');
+        me.roleSprite.destroy();
+        me.roleSprite = new CardSprite(185, HAND_Y, role, 0, this, 2);
+        me.roleSprite.setDraggable(false, true);
+        me.roleSprite.specEmitter.on('hover', this.showTooltip, this);
+        me.roleSprite.specEmitter.on('unhover', this.hideTooltip, this);
+        me.tint = 0xb38fd9;
+        me.characterSprite.graphic.setTint(me.tint);
+        this.time.delayedCall(2200, () =>
+            this.quickTextDisplay(`You serve ${necromancer} now.\nKill the Grandmaster!`));
     }
 
     turnEnd() {
@@ -330,14 +452,14 @@ class MainGame extends Phaser.Scene {
         if (this.gameIsOver) return;
         this.gameIsOver = true;
         this.isYourTurn = false;
-        this.time.delayedCall(2000, () => {
+        this.fx.whenIdle(() => this.time.delayedCall(2000, () => {
             this.scene.start("Endingscreen", {
                 status: winners.includes(this.mainPlayer.username) ? "won" : "lost",
                 winners,
                 roles,
                 tutorial: this.tutorialMode,
             });
-        });
+        }));
     }
 
     userDie(username) {
@@ -345,6 +467,8 @@ class MainGame extends Phaser.Scene {
             this.dead = true;
             this.mainPlayer.health = 0;
             this.mainPlayer.healthText.setText("You Died").setColor('#ff5555');
+            this.mainPlayer.tint = 0x555555;
+            this.mainPlayer.characterSprite.graphic.setTint(this.mainPlayer.tint);
             this.quickTextDisplay("You have died!");
         } else {
             const p = this.otherPlayers[username];
@@ -352,23 +476,32 @@ class MainGame extends Phaser.Scene {
             this.quickTextDisplay(`${username} has died!`);
             p.health = 0;
             p.healthText.setText("dead").setColor('#ff5555');
-            p.charSprite.graphic.setTint(0x555555);
+            p.tint = 0x555555;
+            p.charSprite.graphic.setTint(p.tint);
         }
     }
 
-    checkSync(data) {
+    /**
+     * @param data { field, player } from the host
+     * @param {boolean} landing true when a played card just landed
+     */
+    checkSync(data, landing = false) {
         const fieldPlayers = data.field.players;
         const me = this.mainPlayer;
         if (!me) return;
+        // While cards are flying, health and items wait for them to land
+        const holdTable = this.fx.busy && !landing;
 
         // Our own health/items from the field data
         const meOnField = fieldPlayers[me.username];
-        if (meOnField) {
+        if (meOnField && !holdTable) {
             if (meOnField.health != me.health && !this.dead) {
+                if (meOnField.health < me.health) this.fx.popText(me.username, `-${me.health - meOnField.health}`);
                 me.health = meOnField.health;
                 me.healthText.setText(`${Math.max(0, me.health)}/100`);
             }
             this.setDefenseText(me.defenseText, meOnField.items);
+            this.fx.renderItems(me.username, me, meOnField.items);
         }
 
         // Our hand: only the full player object from 'sync' has it
@@ -388,15 +521,18 @@ class MainGame extends Phaser.Scene {
         for (const [name, p] of Object.entries(this.otherPlayers)) {
             const truth = fieldPlayers[name];
             if (!truth) continue;
-            if (truth.health != p.health && p.health > 0) {
-                p.health = truth.health;
-                p.healthText.setText(`${Math.max(0, truth.health)}/100`);
-            }
             if (truth.hand != p.hand) {
                 p.hand = truth.hand;
                 p.cardCountText.setText(String(truth.hand));
             }
+            if (holdTable) continue;
+            if (truth.health != p.health && p.health > 0) {
+                if (truth.health < p.health) this.fx.popText(name, `-${p.health - Math.max(0, truth.health)}`);
+                p.health = truth.health;
+                p.healthText.setText(`${Math.max(0, truth.health)}/100`);
+            }
             this.setDefenseText(p.defenseText, truth.items);
+            this.fx.renderItems(name, p, truth.items);
         }
     }
 }

@@ -63,6 +63,12 @@ export default class Bot {
          * judge how suspicious it looks.
          */
         this.publicSuspicion = {};
+        /** Players the Necromancer has raised */
+        this.thralls = new Set();
+        /** If we're a Thrall, the Necromancer we serve */
+        this.master = null;
+        /** Everyone currently dead, in order */
+        this.dead = [];
 
         const s = this.socket;
         s.on('start game', (field) => {
@@ -89,7 +95,24 @@ export default class Bot {
             this.players = info.field.players;
         });
         s.on('the gmaster bro reveals himself', (name) => { this.grandmaster = name; });
-        s.on('death', (name) => this.alive.delete(name));
+        s.on('death', (name) => {
+            this.alive.delete(name);
+            this.dead.push(name);
+        });
+        s.on('risen', (name) => {
+            this.alive.add(name);
+            this.dead = this.dead.filter((n) => n != name);
+            this.thralls.add(name);
+            // Everyone saw that. A Thrall is a known enemy of the good guys.
+            if (name != this.name) {
+                this.suspicion[name] = Math.max(this.suspicion[name] || 0, 2.5);
+                this.publicSuspicion[name] = Math.max(this.publicSuspicion[name] || 0, 2.5);
+            }
+        });
+        s.on('you rose', ({ role, necromancer }) => {
+            this.me.role = role;
+            this.master = necromancer;
+        });
         s.on('game over', () => { this.over = true; });
         s.on('turn start', (name) => {
             if (name == NECRO_PHASE) {
@@ -115,7 +138,8 @@ export default class Bot {
 
     /** Fraction of damage a player's shields block */
     defense(name) {
-        return Math.min(0.6, (this.players[name]?.items?.length ?? 0) * 0.15);
+        const shields = (this.players[name]?.items ?? []).filter((i) => i.name == 'Shield').length;
+        return Math.min(0.6, shields * 0.15);
     }
 
     /** Living players other than me */
@@ -224,20 +248,37 @@ export default class Bot {
         await this.wait();
         if (this.over) return;
         try {
-            await this.equipShields();
+            await this.equipItems();
             if (this.isNecro) await this.necromancerTurn();
+            else if (this.role == 'Thrall') await this.thrallTurn();
             else await this.goodTurn();
         } finally {
             if (!this.over) this.socket.emit('turn end');
         }
     }
 
-    async equipShields() {
-        // Shields stop helping at 60% (4 shields)
-        const equipped = this.players[this.name]?.items?.length ?? 0;
-        if (this.find('Shield') >= 0 && equipped < 4 && (this.hp(this.name) < 80 || chance(0.5))) {
-            await this.play('Shield', this.name);
+    async equipItems() {
+        const items = this.players[this.name]?.items ?? [];
+        const have = (name) => items.filter((i) => i.name == name).length;
+        // Shields cap at 60% (4), Robes at 60% (3); Wands keep stacking
+        const worthIt = { Shield: have('Shield') < 4, Robe: have('Robe') < 3, Wand: true };
+        for (const item of ['Wand', 'Shield', 'Robe']) {
+            if (this.over) return;
+            if (this.find(item) >= 0 && worthIt[item] && (this.hp(this.name) < 80 || item == 'Wand' || chance(0.5))) {
+                await this.play(item, this.name);
+            }
         }
+    }
+
+    /** A Thrall serves the Necromancer: go after the Grandmaster, openly */
+    async thrallTurn() {
+        const gm = this.grandmaster;
+        const target = this.alive.has(gm) ? gm
+            : this.others().filter((n) => n != this.master && !this.thralls.has(n))[0];
+        if (target) await this.play('Bolt', target);
+        // Fireballs are fine as long as they won't finish off our master
+        const masterHp = this.hp(this.master);
+        if (masterHp > 15 && chance(0.7)) await this.play('Fireball');
     }
 
     async goodTurn() {
@@ -270,17 +311,29 @@ export default class Bot {
         const gmTakes = (dmg) => dmg - Math.ceil(dmg * this.defense(gm));
         const caught = this.heat >= 3;
 
+        // A corpse on the table? Raise it to fight for us. (One ritual per turn.)
+        const corpse = this.dead.find((n) => n != gm && n != this.name);
+        if (corpse && this.find('Rise From the Dead') >= 0) {
+            await this.play('Rise From the Dead', corpse);
+        } else if (this.find('Witch Brew') >= 0) {
+            await this.brew(gm, gmAlive, gmHp, gmTakes);
+        }
+        if (!gmAlive) return;
+        await this.necromancerPlays(gm, gmHp, gmTakes, caught);
+    }
+
+    async brew(gm, gmAlive, gmHp, gmTakes) {
         // Witch Brew is anonymous, so nobody can pin it on us. Aim it at the
         // GM when it would finish them (or now and then), otherwise at whoever
         // has been coming after us.
-        if (this.find('Witch Brew') >= 0) {
-            const threat = this.others().filter((n) => n != gm)
-                .sort((a, b) => (this.hurtMe[b] || 0) - (this.hurtMe[a] || 0))[0];
-            const victim = !gmAlive ? threat
-                : (gmHp <= gmTakes(30) || !threat || chance(0.4)) ? gm : threat;
-            if (victim) await this.play('Witch Brew', victim);
-        }
-        if (!gmAlive) return;
+        const threat = this.others().filter((n) => n != gm && !this.thralls.has(n))
+            .sort((a, b) => (this.hurtMe[b] || 0) - (this.hurtMe[a] || 0))[0];
+        const victim = !gmAlive ? threat
+            : (gmHp <= gmTakes(30) || !threat || chance(0.6)) ? gm : threat;
+        if (victim) await this.play('Witch Brew', victim);
+    }
+
+    async necromancerPlays(gm, gmHp, gmTakes, caught) {
 
         // Can we finish the Grandmaster right now? Then stop pretending.
         const fireballs = this.count('Fireball');
@@ -302,7 +355,7 @@ export default class Bot {
         // helping, and it gets a Sorcerer out of the way. If nobody stands
         // out, hit back at someone who's been hitting us, which looks like
         // self-defense.
-        const sorcerers = this.others().filter((n) => n != gm);
+        const sorcerers = this.others().filter((n) => n != gm && !this.thralls.has(n));
         const framed = sorcerers.sort((a, b) => this.publicSuspicion[b] - this.publicSuspicion[a])[0];
         if (framed && this.publicSuspicion[framed] >= 1) {
             await this.play('Bolt', framed);

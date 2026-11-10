@@ -47,7 +47,7 @@ export default class Tutorial {
                 highlight: () => [scene.playZone.getBounds()],
             },
             {
-                text: "Shields are equipment. Drag one onto your character card to block 15% of all incoming damage (stacks up to 60%).\n\nTry it, or click Next.",
+                text: "Shields, Robes and Wands are equipment. Drag them onto your character card. Shields block damage, Robes let you dodge Bolts, Wands make your spells hit harder.\n\nTry the Shield, or click Next.",
                 highlight: () => [scene.mainPlayer.characterSprite.getBounds()],
                 waitFor: (event, payload) => event == 'card played' && payload.card.name == 'Shield',
                 allowNext: true,
@@ -63,7 +63,7 @@ export default class Tutorial {
                 panelY: 370,
             },
             {
-                text: "Necromancy phase! Once per round, the Necromancer's secret ritual takes effect.\n\nWitch Brew deals 30 damage and makes its victim lose a random card. Only the Necromancer can cast these.",
+                text: "Necromancy phase! Once per round, the Necromancer's secret ritual takes effect.\n\nWitch Brew deals 30 damage and makes its victim lose a random card. Rise From the Dead brings a dead player back as the Necromancer's Thrall.",
                 panelY: 370,
             },
             {

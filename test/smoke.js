@@ -44,8 +44,11 @@ for (let i = 0; i < 20; i++) {
     try {
         const { winners, roles, turns } = await playGame(players);
         const necro = Object.keys(roles).find((n) => roles[n] == 'Necromancer');
-        const necroWon = winners.length == 1 && winners[0] == necro;
-        if (!necroWon && winners.includes(necro)) throw new Error('Necromancer listed among good winners');
+        const necroWon = winners.includes(necro);
+        const thralls = Object.keys(roles).filter((n) => roles[n] == 'Thrall');
+        // Evil wins together, good wins without any of them
+        if (necroWon && winners.some((n) => !['Necromancer', 'Thrall'].includes(roles[n]))) throw new Error('Good player won with the Necromancer');
+        if (!necroWon && thralls.some((n) => winners.includes(n))) throw new Error('Thrall won with the good guys');
         tally[necroWon ? 'Necromancer' : 'Good']++;
         console.log(`game ${i + 1} (${players}p): ${necroWon ? 'Necromancer' : 'Good guys'} won after ${turns} turns`);
     } catch (e) {

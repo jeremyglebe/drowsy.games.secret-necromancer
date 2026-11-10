@@ -28,6 +28,7 @@ import Player from './Player.js';
 import Grandmaster from './roles/Grandmaster.js';
 import Necromancer from './roles/Necromancer.js';
 import Sorcerer from './roles/Sorcerer.js';
+import Thrall from './roles/Thrall.js';
 import CharDeck from './cards/decks/CharDeck.js';
 import MainDeck from './cards/decks/MainDeck.js';
 import NecroDeck from './cards/decks/NecroDeck.js';
@@ -160,7 +161,11 @@ export default class Field {
 
         if (card.type == 'necromancy') {
             if (player.role.name != 'Necromancer' || this.necroCard) return false;
-            if (!this.players[targets] || this.players[targets].health <= 0) return false;
+            const victim = this.players[targets];
+            if (!victim) return false;
+            // Rise From the Dead needs a corpse; everything else needs someone alive
+            if ((card.targetType == 'dead') != (victim.health <= 0)) return false;
+            if (card.targetType == 'dead' && victim.role.name == 'Necromancer') return false;
             player.hand.splice(index, 1);
             this.necroCard = card;
             this.necroCard.target = targets;
@@ -169,6 +174,7 @@ export default class Field {
 
         if (card.oncePerTurn && this.playedThisTurn.has(card.name)) return false;
 
+        let result = {};
         if (card.type == 'item') {
             player.hand.splice(index, 1);
             player.items.push(card);
@@ -177,8 +183,10 @@ export default class Field {
             if (card.targetType == 'player') {
                 const target = this.players[targets];
                 if (!target || target.health <= 0) return false;
+                // A Thrall can't Bolt their master (a Fireball is another story)
+                if (player.role.name == 'Thrall' && target.role.name == 'Necromancer') return false;
             }
-            card.activate(this, username, targets);
+            result = card.activate(this, username, targets) || {};
             if (card.oncePerTurn) this.playedThisTurn.add(card.name);
             player.hand.splice(index, 1);
             this.discardCard(card);
@@ -187,8 +195,10 @@ export default class Field {
         this.server.emit('spell played', {
             field: this.getCliField(),
             cardname: name,
+            description: card.description,
             caster: username,
             target: card.targetType == 'player' ? targets : null,
+            ...result,
         });
         return true;
     }
@@ -231,12 +241,26 @@ export default class Field {
             this.server.emit('spell played', {
                 field: this.getCliField(),
                 cardname: this.necroCard.name,
+                description: this.necroCard.description,
                 caster: NECRO_PHASE,
                 target: this.necroCard.target,
             });
         }
         this.necroCard = null;
         setTimeout(() => this.nextTurn(), this.necroPhaseDelay);
+    }
+
+    /**
+     * Brings a dead player back as the Necromancer's thrall. They rejoin the
+     * turn order just before the Necromancy phase.
+     */
+    raise(username) {
+        const player = this.players[username];
+        if (!player || player.health > 0) return;
+        player.health = 50;
+        player.role = new Thrall();
+        this.turnQueue.splice(this.turnQueue.indexOf(NECRO_PHASE), 0, username);
+        this.server.onRaised?.(username);
     }
 
     /** Moves the front of the turn queue to the back and starts the next turn. */

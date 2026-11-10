@@ -11,6 +11,10 @@ export default class Bolt extends Spell {
     activate(field, caster, target) {
         const player = field.players[target];
         if (!player) return;
-        player.takeDamage(randInt(10, 21));
+        const source = field.players[caster];
+        source?.calcStats();
+        player.calcStats();
+        if (Math.random() < player.evasion) return { dodged: true };
+        player.takeDamage(randInt(10, 21) + (source?.focus ?? 0));
     }
 }

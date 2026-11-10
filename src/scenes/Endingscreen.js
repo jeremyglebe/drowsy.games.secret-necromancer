@@ -16,14 +16,14 @@ class Endingscreen extends Phaser.Scene {
     }
 
     create() {
-        this.add.sprite(0, 0, "connectscreen_graphic").setOrigin(0, 0);
+        this.add.sprite(0, 0, "endingscreen_graphic").setOrigin(0, 0);
         this.add.sprite(640, 110, "title_graphic").setScale(0.3);
 
         const won = this.status == "won";
         this.add.text(640, 260, won ? "You've won!" : "Game Over!", textStyle(64, won ? '#7dff7d' : '#ff7d7d')).setOrigin(0.5);
 
         const necro = Object.keys(this.roles).find((n) => this.roles[n] == 'Necromancer');
-        const necroWon = this.winners.length == 1 && this.winners[0] == necro;
+        const necroWon = this.winners.includes(necro);
         this.add.text(640, 340, necroWon ? "The Necromancer triumphs..." : "The Necromancer has been destroyed!",
             textStyle(32, '#ffe680')).setOrigin(0.5);
 
