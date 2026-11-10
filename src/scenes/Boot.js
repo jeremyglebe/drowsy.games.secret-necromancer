@@ -26,6 +26,8 @@ class Boot extends Phaser.Scene {
         this.load.image("Tiny_graphic", "assets/cards/tiny_card.png");
         this.load.image("Lord Bacon_graphic", "assets/cards/bacon_card.png");
         this.load.image("Lilium_graphic", "assets/cards/lilium_card.png");
+        this.load.image("Professor Mittens_graphic", "assets/cards/mittens_card.png");
+        this.load.image("Ember_graphic", "assets/cards/ember_card.png");
         this.load.image("backofspell_graphic", "assets/cards/light_card_back.png");
         this.load.image("lobby_graphic","assets/backgrounds/lobby.png")
         this.load.image("gamebackground_graphic","assets/backgrounds/main_screen_2.png")
